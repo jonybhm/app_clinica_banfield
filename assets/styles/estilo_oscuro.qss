@@ -1,0 +1,33 @@
+QWidget {
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+    font-size: 14px;
+}
+QPushButton {
+    background-color: #3a3a3a;
+    border: 1px solid #5a5a5a;
+    padding: 5px;
+}
+QPushButton:hover {
+    background-color: #505050;
+}
+QLineEdit {
+    background-color: #3a3a3a;
+    border: 1px solid #5a5a5a;
+    padding: 4px;
+}
+QMenuBar {
+    background-color: #3a3a3a;
+}
+QMenuBar::item {
+    background-color: #3a3a3a;
+}
+QMenuBar::item:selected {
+    background-color: #505050;
+}
+QMenu {
+    background-color: #3a3a3a;
+}
+QMenu::item:selected {
+    background-color: #505050;
+}
