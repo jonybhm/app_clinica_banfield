@@ -13,72 +13,66 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from modulos.inicio import PantallaInicio
 from modulos.historia_clinica import PantallaHistoriaClinica
+from modulos.login import PantallaLogin
 
 class MainWindow(QMainWindow):    
     '''
     Clase que representa la ventana principal
     Hereda propiedades de PyQT (Main Window)    
     '''
-    def __init__(self):
+    def __init__(self, datos_usuario):  # ← RECIBE los datos de usuario
         super().__init__()
-        
-        #Titulo, Tamaño y Posicion de la ventana
+
         self.setWindowTitle("Clínica Banfield")
         self.setGeometry(100, 100, 800, 600)
-        
-        
-        #Crear Logo de la clinica
+
+        # Inicializar pantallas
+        self.inicio = PantallaInicio()
+        self.historia_clinica = PantallaHistoriaClinica()
+
+        # Asignar ID profesional (se usa en historia_clinica)
+        self.historia_clinica.id_profesional = datos_usuario["CODIGO"]
+
+        # Crear logo
         logo = QLabel()
         pixmap = QPixmap("assets/logo/logo.png").scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
-        
-        
-        
-        #Botones de "INICIO" y "HISTORIA CLINICA"
+
+        # Stack de pantallas
+        self.stack = QStackedWidget()
+        self.stack.addWidget(self.inicio)            # índice 0
+        self.stack.addWidget(self.historia_clinica)  # índice 1
+
+        # Botones de navegación
         self.btn_inicio = QPushButton("INICIO")
         self.btn_historia = QPushButton("HISTORIA CLÍNICA")
-                 
-        #Cambio de pantalla (Pantalla 0 y Pantalla 1)
         self.btn_inicio.clicked.connect(lambda: self.stack.setCurrentIndex(0))
         self.btn_historia.clicked.connect(lambda: self.stack.setCurrentIndex(1))
-        
-        
-        #Layout en fila
+
+        # Layout horizontal con logo y botones
         nav_layout = QHBoxLayout()
         nav_layout.addWidget(logo)
-
         nav_layout.addWidget(self.btn_inicio)
         nav_layout.addWidget(self.btn_historia)
-        
-        
-        #Agregar stack de pantallas
-        self.stack = QStackedWidget()
-        self.inicio = PantallaInicio()
-        self.historia_clinica = PantallaHistoriaClinica()
-        
-       
-        #Agregar pantallas al stack
-        self.stack.addWidget(PantallaInicio())
-        self.stack.addWidget(PantallaHistoriaClinica())
-             
-     
-        
-        #Layout en columna (Vertical)
+
+        # Layout vertical principal
         layout = QVBoxLayout()
         layout.addLayout(nav_layout)
         layout.addWidget(self.stack)
-  
-    
+
         container = QWidget()
         container.setLayout(layout)
-        self.setCentralWidget(container)     
-        
-        
-        #Crear Barra de Menu
+        self.setCentralWidget(container)
+
+        # Crear barra de menú
         self._crear_menu()
-        
-        #Estilo moderno y tema oscuro        
+
+        # Mostrar tipo de usuario en consola
+        tipo_usuario = "Médico" if datos_usuario["NIVEL"] == 5 else "Recepción"
+        self.statusBar().showMessage(f"Usuario: {datos_usuario['APELLIDO']} | Puesto: {tipo_usuario}")
+
+        # Aplicar tema oscuro
         QApplication.setStyle("Fusion")
         self._aplicar_tema_oscuro()
         
@@ -131,6 +125,12 @@ class MainWindow(QMainWindow):
             print("Archivo de estilos no encontrado")
             
         
+    def login_exitoso(self, datos_usuario):
+        self.btn_inicio.setEnabled(True)
+        self.btn_historia.setEnabled(True)
+
+        self.historia_clinica.id_profesional = datos_usuario.CODIGOEMPLEADO
+        self.stack.setCurrentIndex(1)
         
         
         
