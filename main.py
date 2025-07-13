@@ -17,16 +17,6 @@ if __name__ == "__main__":
     login = PantallaLogin()
     if login.exec_() == QDialog.Accepted:
         datos_usuario = login.usuario_datos
-        main = MainWindow(datos_usuario)  # ← PASÁS el diccionario al constructor
+        main = MainWindow(datos_usuario)  # diccionario al constructor
         main.show()
         sys.exit(app.exec_())
-    '''
-    if login.exec_() == QDialog.Accepted:
-        main = MainWindow()
-        # Pasar datos del profesional
-        main.historia_clinica.id_profesional = login.usuario_datos["CODIGO"]
-        main.show()
-        sys.exit(app.exec_())
-    else:
-        sys.exit()  # cerrar si no inicia sesión
-    '''

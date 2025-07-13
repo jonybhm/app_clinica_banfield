@@ -8,96 +8,101 @@ from acceso_db.conexion import obtener_conexion
 from acceso_db.config import MODO_CONEXION
 from datetime import datetime
 
-def buscar_turnos(fecha, estado, id_profesional):
+def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
     conn = obtener_conexion()
     cursor = conn.cursor()
     parametros = [fecha, id_profesional]
 
     if MODO_CONEXION == "access":
         query = """
-            SELECT p.NOMBRE, p.FENAC, p.SEXO,
-                   c.HORAHC, c.FEPACIENTE, c.RECEPCION, c.ATENDHC,
-                   e.NOMBRE AS PROFESIONAL
-            FROM [dbo_ACABPAC] AS c, [dbo_AHISTORPAC] AS p, [dbo_AEMPLEAD] AS e
-            WHERE c.CODPAC = p.CODPAC
-              AND c.MEDSOLPAC = e.CODIGO
-              AND FORMAT(c.FEPACIENTE, 'yyyy-mm-dd') = ?
-              AND c.MEDSOLPAC = ?
+            SELECT 
+                t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR,
+                p.NOMBRE, p.FENAC, p.SEXO,
+                h.EVOLUCION
+            FROM 
+                ((dbo_AMOVTURN AS t
+                LEFT JOIN dbo_AHISTORPAC AS p ON t.CODPAC = p.CODPAC)
+                LEFT JOIN dbo_AHISTCLIN AS h ON (h.CODPAC = t.CODPAC AND h.FECHA = t.FECHTUR AND h.PROFES = t.CODIGO))
+            WHERE 
+                FORMAT(t.FECHTUR, 'yyyy-mm-dd') = ? AND t.CODIGO = ?
         """
+
     else:
         query = """
-            SELECT p.NOMBRE, p.FENAC, p.SEXO,
-                   c.HORAHC, c.FEPACIENTE, c.RECEPCION, c.ATENDHC,
-                   e.NOMBRE AS PROFESIONAL
-            FROM dbo_ACABPAC c
-            JOIN dbo_AHISTORPAC p ON c.CODPAC = p.CODPAC
-            JOIN dbo_AEMPLEAD e ON c.MEDSOLPAC = e.CODIGO
-            WHERE CONVERT(date, c.FEPACIENTE) = ?
-              AND c.MEDSOLPAC = ?
+            SELECT 
+                t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR,
+                p.NOMBRE, p.FENAC, p.SEXO,
+                h.EVOLUCION
+            FROM dbo_AMOVTURN t
+            LEFT JOIN dbo_AHISTORPAC p ON t.CODPAC = p.CODPAC
+            LEFT JOIN dbo_AHISTCLIN h ON h.CODPAC = t.CODPAC AND h.FECHA = t.FECHTUR AND h.PROFES = t.CODIGO
+            WHERE CONVERT(date, t.FECHTUR) = ? AND t.CODIGO = ?
         """
 
     if estado == "PENDIENTE":
-        query += " AND c.RECEPCION IS NOT NULL AND c.ATENDHC = 0"
+        query += " AND (h.EVOLUCION IS NULL OR LEN(h.EVOLUCION) < 10)"
     elif estado == "ATENDIDO":
-        query += " AND c.ATENDHC = 1"
+        query += " AND h.EVOLUCION IS NOT NULL AND LEN(h.EVOLUCION) >= 10"
 
-    query += " ORDER BY c.HORAHC"
+    query += " ORDER BY t.HORATUR, t.MINTUR"
 
     cursor.execute(query, parametros)
     resultados = cursor.fetchall()
     conn.close()
 
-    # Procesar datos para tabla
     datos = []
     for row in resultados:
-        nombre = row[0]
-        fenac = row[1]
-        sexo = "FEMENINO" if row[2] == 0 else "MASCULINO"
-        hora_turno = row[3]
-        hora_recep = row[5] if row[5] is not None else None
+        codpac, horatur, mintur, horarec, fecha, nombre, fenac, sexo, evolucion = row
 
         edad = calcular_edad(fenac)
-        espera = calcular_espera(hora_recep, hora_turno)
-
+        hora_turno = horatur * 100 + mintur if horatur is not None and mintur is not None else None
+        espera = calcular_espera(horarec, hora_turno)
+        sexo_txt = "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-"
+        
         datos.append((
             nombre,
-            f"{edad} años",
-            sexo,
-            format_hora(hora_recep),
+            f"{edad} años" if edad else "?",
+            sexo_txt,
+            format_hora(horarec),
             espera,
             format_hora(hora_turno),
-            row[7]  # profesional
+            nombre_profesional  # ← ahora sí muestra el médico
         ))
 
     return datos
 
 def calcular_edad(fecha_nacimiento):
-    if not fecha_nacimiento:
-        return "?"
+    if not fecha_nacimiento or not isinstance(fecha_nacimiento, datetime):
+        return None
     hoy = datetime.today()
-    return hoy.year - fecha_nacimiento.year - (
-        (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day)
-    )
+    return hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
 
 def format_hora(valor):
-    if isinstance(valor, int):  # campo HORAHC puede venir como entero (ej: 830)
+    if isinstance(valor, int):  # HHMM
         h = valor // 100
         m = valor % 100
         return f"{h:02}:{m:02}"
-    return str(valor) if valor else "-"
+    if isinstance(valor, datetime):
+        return valor.strftime("%H:%M")
+    if isinstance(valor, str) and ":" in valor:
+        try:
+            hora = datetime.strptime(valor, "%d/%m/%Y %H:%M:%S")
+            return hora.strftime("%H:%M")
+        except:
+            return valor[:5]
+    return "-"
 
 def calcular_espera(hora_recep, hora_turno):
-    if not hora_recep or not hora_turno or not isinstance(hora_turno, int):
+    if not hora_recep or not hora_turno:
         return "-"
-    h_turno = hora_turno // 100
-    m_turno = hora_turno % 100
-    t_turno = h_turno * 60 + m_turno
-
     try:
-        h_recep = int(str(hora_recep).split(":")[0])
-        m_recep = int(str(hora_recep).split(":")[1])
+        h_turno = hora_turno // 100
+        m_turno = hora_turno % 100
+        t_turno = h_turno * 60 + m_turno
+
+        h_recep, m_recep = map(int, str(hora_recep).split(":")[:2])
         t_recep = h_recep * 60 + m_recep
-        minutos = t_recep - t_turno
-        return f"{minutos}:{abs((t_recep - t_turno) % 60):02}"
+        dif = t_recep - t_turno
+        return f"{dif}:{abs(dif % 60):02}"
     except:
         return "-"

@@ -31,7 +31,8 @@ class MainWindow(QMainWindow):
         self.historia_clinica = PantallaHistoriaClinica()
 
         # Asignar ID profesional (se usa en historia_clinica)
-        self.historia_clinica.id_profesional = datos_usuario["CODIGO"]
+        self.historia_clinica.id_profesional = datos_usuario.get("CODMED") or 0
+        self.historia_clinica.nombre_profesional = datos_usuario["APELLIDO"]
 
         # Crear logo
         logo = QLabel()

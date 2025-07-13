@@ -71,7 +71,7 @@ class PantallaHistoriaClinica(QWidget):
         estado = self.estado_combo.currentText()
         id_profesional = self.id_profesional  # ← tenés que asignar este valor después del login
     
-        turnos = buscar_turnos(fecha, estado, id_profesional)
+        turnos = buscar_turnos(fecha, estado, self.id_profesional, self.nombre_profesional)
     
         self.tabla.clear()
         self.tabla.setRowCount(len(turnos))
