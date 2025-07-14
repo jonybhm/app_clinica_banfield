@@ -49,7 +49,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
     cursor.execute(query, parametros)
     resultados = cursor.fetchall()
     conn.close()
-
+    
     datos = []
     for row in resultados:
         codpac, horatur, mintur, horarec, fecha, nombre, fenac, sexo, evolucion = row
@@ -60,6 +60,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
         sexo_txt = "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-"
         
         datos.append((
+            codpac,
             nombre,
             f"{edad} años" if edad else "?",
             sexo_txt,
@@ -69,6 +70,9 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
             nombre_profesional  # ← ahora sí muestra el médico
         ))
 
+    print("Resultados:", resultados)
+    print("Datos procesados:", datos)
+    
     return datos
 
 def calcular_edad(fecha_nacimiento):
@@ -106,3 +110,85 @@ def calcular_espera(hora_recep, hora_turno):
         return f"{dif}:{abs(dif % 60):02}"
     except:
         return "-"
+    
+def agregar_evolucion(codpac, hclin, profes, evolucion_texto, fecha=None, hora=None):
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+
+    if not fecha:
+        fecha = datetime.today().date()
+    if not hora:
+        hora = datetime.now().time().strftime("%H:%M:%S")
+
+    # Obtener próximo SECUEN
+    cursor.execute("""
+        SELECT MAX(SECUEN) FROM dbo_AHISTCLIN
+        WHERE CODPAC = ? AND FECHA = ?
+    """, (codpac, fecha))
+    resultado = cursor.fetchone()
+    secuen = (resultado[0] or 0) + 1
+
+    # Obtener próximo PROTOCOLO
+    cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo_AHISTCLIN")
+    resultado = cursor.fetchone()
+    protocolo = (resultado[0] or 1000000) + 1
+
+    query = """
+        INSERT INTO dbo_AHISTCLIN (HCLIN, FECHA, SECUEN, PROFES, CODPAC, EVOLUCION, HORA, PROTOCOLO)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    cursor.execute(query, (
+        hclin, fecha, secuen, profes, codpac,
+        evolucion_texto, hora, protocolo
+    ))
+    conn.commit()
+    conn.close()
+    
+def obtener_datos_paciente_y_historial(codpac, id_profesional):
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+
+    # Obtener datos de paciente
+    cursor.execute("""
+        SELECT HISTORIACLI, ENTIDAD, NOMBRE, FENAC, SEXO FROM dbo_AHISTORPAC WHERE CODPAC = ?
+    """, (codpac,))
+    pac = cursor.fetchone()
+    if not pac:
+        conn.close()
+        return None, []
+
+    hclin = pac.HISTORIACLI
+    entidad = pac.ENTIDAD
+    nombre = pac.NOMBRE
+    fenac = pac.FENAC
+    sexo = pac.SEXO
+    edad = calcular_edad(fenac)
+
+    cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo_AHISTCLIN")
+    max_proto = cursor.fetchone()[0] or 1000000
+    protocolo = max_proto + 1
+
+    cursor.execute("""
+        SELECT FECHA, EVOLUCION FROM dbo_AHISTCLIN
+        WHERE CODPAC = ? ORDER BY FECHA DESC
+    """, (codpac,))
+    historial = [(r.FECHA.strftime("%d/%m/%Y"), r.EVOLUCION[:60] + "...") for r in cursor.fetchall()]
+
+    conn.close()
+
+    datos_paciente = {
+        "NOMBRE": nombre,
+        "FECHA": datetime.today().strftime("%Y-%m-%d"),
+        "HCLIN": hclin,
+        "HORA": datetime.now().strftime("%H:%M:%S"),
+        "PROTOCOLO": protocolo,
+        "EDAD": f"{edad} años" if edad else "?",
+        "SEXO": "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-",
+        "ENTIDAD": entidad,
+        "PROFESIONAL": id_profesional,
+        "CODPAC": codpac
+    }
+
+    return datos_paciente, historial
+

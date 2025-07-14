@@ -12,6 +12,7 @@ def obtener_conexion():
         conn_str = (
             r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
             fr"DBQ={config.RUTA_ACCESS};"
+            r"ExtendedAnsiSQL=1;"
         )
     else:  # sqlserver
         conn_str = (
