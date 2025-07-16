@@ -9,11 +9,13 @@ Created on Mon Jul 14 13:42:13 2025
 
 from PyQt5.QtWidgets import (
     QDialog, QTabWidget, QWidget, QVBoxLayout, QLabel, QPushButton,
-    QHBoxLayout, QTextEdit, QMessageBox, QFormLayout, QTextEdit
+    QHBoxLayout, QTextEdit, QMessageBox, QFormLayout, QTextEdit, QComboBox
 )
 from PyQt5.QtCore import QDateTime
 from datetime import datetime
 from auxiliar.rtf_utiles import limpiar_evolucion
+from acceso_db.repositorio_historia import obtener_lista_diagnosticos
+from auxiliar.widgets_personalizados import ComboBoxLimitado
 
 class DialogoConsulta(QDialog):
     def __init__(self, datos_paciente, historial, parent=None):
@@ -84,17 +86,22 @@ class DialogoConsulta(QDialog):
     def _init_tab_evolucion(self):
         layout = QVBoxLayout()
         self.txt_motivo = QTextEdit()
-        self.txt_diagnostico = QTextEdit()
+        self.cmb_diagnostico = ComboBoxLimitado() 
         self.txt_tratamiento = QTextEdit()
         self.txt_examenes = QTextEdit()
         self.txt_derivacion = QTextEdit()
         self.txt_extra = QTextEdit()
 
+        # 🔽 Cargar diagnósticos
+        self.diagnosticos = obtener_lista_diagnosticos()
+        for codigo, descripcion in self.diagnosticos:
+            self.cmb_diagnostico.addItem(f"{descripcion} ({codigo})", userData=codigo)
+
         layout.addWidget(QLabel("Motivo de Consulta:"))
         layout.addWidget(self.txt_motivo)
 
         layout.addWidget(QLabel("Diagnóstico:"))
-        layout.addWidget(self.txt_diagnostico)
+        layout.addWidget(self.cmb_diagnostico)  
 
         layout.addWidget(QLabel("Tratamiento:"))
         layout.addWidget(self.txt_tratamiento)
@@ -119,9 +126,12 @@ class DialogoConsulta(QDialog):
             self.guardar_evolucion()
 
     def guardar_evolucion(self):
+        codigo_diag = self.cmb_diagnostico.currentData()
+        texto_diag = self.cmb_diagnostico.currentText()
+        
         texto_final = (
             f"Motivo: {self.txt_motivo.toPlainText()}\n"
-            f"Diagnóstico: {self.txt_diagnostico.toPlainText()}\n"
+            f"Diagnóstico: {texto_diag} (Código: {codigo_diag})\n"
             f"Tratamiento: {self.txt_tratamiento.toPlainText()}\n"
             f"Exámenes: {self.txt_examenes.toPlainText()}\n"
             f"Derivación: {self.txt_derivacion.toPlainText()}\n"

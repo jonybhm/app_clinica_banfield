@@ -149,7 +149,7 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
     conn = obtener_conexion()
     cursor = conn.cursor()
 
-    # Obtener datos de paciente
+    # Obtener datos del paciente
     cursor.execute("""
         SELECT HISTORIACLI, ENTIDAD, NOMBRE, FENAC, SEXO FROM dbo_AHISTORPAC WHERE CODPAC = ?
     """, (codpac,))
@@ -165,10 +165,19 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
     sexo = pac.SEXO
     edad = calcular_edad(fenac)
 
+    # Obtener nombre de la obra social (AOBRASPX)
+    cursor.execute("""
+        SELECT DESOBRA FROM dbo_AOBRASPX WHERE CODOBRA = ?
+    """, (entidad,))
+    resultado = cursor.fetchone()
+    nombre_obra_social = resultado.DESOBRA.strip() if resultado else f"Obra desconocida ({entidad})"
+
+    # Obtener nuevo protocolo
     cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo_AHISTCLIN")
     max_proto = cursor.fetchone()[0] or 1000000
     protocolo = max_proto + 1
 
+    # Historia clínica
     cursor.execute("""
         SELECT FECHA, EVOLUCION FROM dbo_AHISTCLIN
         WHERE CODPAC = ? ORDER BY FECHA DESC
@@ -185,10 +194,20 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
         "PROTOCOLO": protocolo,
         "EDAD": f"{edad} años" if edad else "?",
         "SEXO": "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-",
-        "ENTIDAD": entidad,
+        "ENTIDAD": nombre_obra_social,  # ← nombre en vez de número
         "PROFESIONAL": id_profesional,
         "CODPAC": codpac
     }
 
     return datos_paciente, historial
 
+
+def obtener_lista_diagnosticos():
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo_ADIAGPRES ORDER BY DESCRIPCION")
+    resultados = cursor.fetchall()
+    conn.close()
+
+    return [(row.CODIGO, row.DESCRIPCION.strip()) for row in resultados]
