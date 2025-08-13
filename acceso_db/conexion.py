@@ -16,10 +16,12 @@ def obtener_conexion():
         )
     else:  # sqlserver
         conn_str = (
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
             f"SERVER={config.SQLSERVER_CONFIG['server']};"
             f"DATABASE={config.SQLSERVER_CONFIG['database']};"
             f"UID={config.SQLSERVER_CONFIG['username']};"
             f"PWD={config.SQLSERVER_CONFIG['password']};"
+            "Encrypt=yes;"
+            f"TrustServerCertificate=yes;"
         )
     return pyodbc.connect(conn_str)

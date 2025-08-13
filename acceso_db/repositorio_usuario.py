@@ -21,8 +21,8 @@ def login_usuario(usuario, clave):
     else:  # sqlserver
         query = """
             SELECT u.CODIGO, u.APELLIDO, u.NIVEL, u.ACTIVO, m.CODMED
-            FROM dbo_AUSUARIOS u
-            LEFT JOIN dbo_AMEDEJEC m ON u.CODIGO = m.USUHC
+            FROM dbo.AUSUARIOS u
+            LEFT JOIN dbo.AMEDEJEC m ON u.CODIGO = m.USUHC
             WHERE u.APELLIDO = ? AND u.CONTRA = ?
         """
 
@@ -47,7 +47,7 @@ def obtener_lista_usuarios():
     if MODO_CONEXION == "access":
         query = "SELECT DISTINCT APELLIDO FROM dbo_AUSUARIOS WHERE APELLIDO IS NOT NULL ORDER BY APELLIDO"
     else:
-        query = "SELECT DISTINCT u.APELLIDO FROM dbo_AUSUARIOS u WHERE u.APELLIDO IS NOT NULL ORDER BY u.APELLIDO"
+        query = "SELECT DISTINCT u.APELLIDO FROM dbo.AUSUARIOS u WHERE u.APELLIDO IS NOT NULL ORDER BY u.APELLIDO"
 
     cursor.execute(query)
     resultados = [row[0].strip() for row in cursor.fetchall()]

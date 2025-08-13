@@ -33,9 +33,9 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
                 t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR,
                 p.NOMBRE, p.FENAC, p.SEXO,
                 h.EVOLUCION
-            FROM dbo_AMOVTURN t
-            LEFT JOIN dbo_AHISTORPAC p ON t.CODPAC = p.CODPAC
-            LEFT JOIN dbo_AHISTCLIN h ON h.CODPAC = t.CODPAC AND h.FECHA = t.FECHTUR AND h.PROFES = t.CODIGO
+            FROM dbo.AMOVTURN t
+            LEFT JOIN dbo.AHISTORPAC p ON t.CODPAC = p.CODPAC
+            LEFT JOIN dbo.AHISTCLIN h ON h.CODPAC = t.CODPAC AND h.FECHA = t.FECHTUR AND h.PROFES = t.CODIGO
             WHERE CONVERT(date, t.FECHTUR) = ? AND t.CODIGO = ?
         """
 
@@ -121,23 +121,38 @@ def agregar_evolucion(codpac, hclin, profes, evolucion_texto, fecha=None, hora=N
         hora = datetime.now().time().strftime("%H:%M:%S")
 
     # Obtener próximo SECUEN
-    cursor.execute("""
-        SELECT MAX(SECUEN) FROM dbo_AHISTCLIN
-        WHERE CODPAC = ? AND FECHA = ?
-    """, (codpac, fecha))
+    if MODO_CONEXION == "access":
+        cursor.execute("""
+            SELECT MAX(SECUEN) FROM dbo_AHISTCLIN
+            WHERE CODPAC = ? AND FECHA = ?
+        """, (codpac, fecha))
+    else:
+        cursor.execute("""
+            SELECT MAX(SECUEN) FROM dbo.AHISTCLIN
+            WHERE CODPAC = ? AND FECHA = ?
+        """, (codpac, fecha))
     resultado = cursor.fetchone()
     secuen = (resultado[0] or 0) + 1
 
     # Obtener próximo PROTOCOLO
-    cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo_AHISTCLIN")
+    if MODO_CONEXION == "access":
+        cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo_AHISTCLIN")
+    else:
+        cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo.AHISTCLIN")
+
     resultado = cursor.fetchone()
     protocolo = (resultado[0] or 1000000) + 1
 
-    query = """
-        INSERT INTO dbo_AHISTCLIN (HCLIN, FECHA, SECUEN, PROFES, CODPAC, EVOLUCION, HORA, PROTOCOLO)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """
-
+    if MODO_CONEXION == "access":
+        query = """
+            INSERT INTO dbo_AHISTCLIN (HCLIN, FECHA, SECUEN, PROFES, CODPAC, EVOLUCION, HORA, PROTOCOLO)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+    else:
+        query = """
+            INSERT INTO dbo.AHISTCLIN (HCLIN, FECHA, SECUEN, PROFES, CODPAC, EVOLUCION, HORA, PROTOCOLO)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
     cursor.execute(query, (
         hclin, fecha, secuen, profes, codpac,
         evolucion_texto, hora, protocolo
@@ -150,9 +165,14 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
     cursor = conn.cursor()
 
     # Obtener datos del paciente
-    cursor.execute("""
-        SELECT HISTORIACLI, ENTIDAD, NOMBRE, FENAC, SEXO FROM dbo_AHISTORPAC WHERE CODPAC = ?
-    """, (codpac,))
+    if MODO_CONEXION == "access":
+        cursor.execute("""
+            SELECT HISTORIACLI, ENTIDAD, NOMBRE, FENAC, SEXO FROM dbo_AHISTORPAC WHERE CODPAC = ?
+        """, (codpac,))
+    else:
+        cursor.execute("""
+            SELECT HISTORIACLI, ENTIDAD, NOMBRE, FENAC, SEXO FROM dbo.AHISTORPAC WHERE CODPAC = ?
+        """, (codpac,))
     pac = cursor.fetchone()
     if not pac:
         conn.close()
@@ -166,22 +186,37 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
     edad = calcular_edad(fenac)
 
     # Obtener nombre de la obra social (AOBRASPX)
-    cursor.execute("""
-        SELECT DESOBRA FROM dbo_AOBRASPX WHERE CODOBRA = ?
-    """, (entidad,))
+    if MODO_CONEXION == "access":
+        cursor.execute("""
+            SELECT DESOBRA FROM dbo_AOBRASPX WHERE CODOBRA = ?
+        """, (entidad,))
+    else:
+        cursor.execute("""
+            SELECT DESOBRA FROM dbo.AOBRASPX WHERE CODOBRA = ?
+        """, (entidad,))
     resultado = cursor.fetchone()
     nombre_obra_social = resultado.DESOBRA.strip() if resultado else f"Obra desconocida ({entidad})"
 
     # Obtener nuevo protocolo
-    cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo_AHISTCLIN")
+    if MODO_CONEXION == "access":
+        cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo_AHISTCLIN")
+    else:
+        cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo.AHISTCLIN")
     max_proto = cursor.fetchone()[0] or 1000000
     protocolo = max_proto + 1
 
     # Historia clínica
-    cursor.execute("""
-        SELECT FECHA, EVOLUCION FROM dbo_AHISTCLIN
-        WHERE CODPAC = ? ORDER BY FECHA DESC
-    """, (codpac,))
+    if MODO_CONEXION == "access":
+        cursor.execute("""
+            SELECT FECHA, EVOLUCION FROM dbo_AHISTCLIN
+            WHERE CODPAC = ? ORDER BY FECHA DESC
+        """, (codpac,))
+    else:
+        cursor.execute("""
+            SELECT FECHA, EVOLUCION FROM dbo.AHISTCLIN
+            WHERE CODPAC = ? ORDER BY FECHA DESC
+        """, (codpac,))
+
     historial = [(r.FECHA.strftime("%d/%m/%Y"), r.EVOLUCION[:60] + "...") for r in cursor.fetchall()]
 
     conn.close()
@@ -205,8 +240,10 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
 def obtener_lista_diagnosticos():
     conn = obtener_conexion()
     cursor = conn.cursor()
-
-    cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo_ADIAGPRES ORDER BY DESCRIPCION")
+    if MODO_CONEXION == "access":
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo_ADIAGPRES ORDER BY DESCRIPCION")
+    else:
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo.ADIAGPRES ORDER BY DESCRIPCION")
     resultados = cursor.fetchall()
     conn.close()
 
