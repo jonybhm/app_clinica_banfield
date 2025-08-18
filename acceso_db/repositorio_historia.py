@@ -217,8 +217,9 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
             WHERE CODPAC = ? ORDER BY FECHA DESC
         """, (codpac,))
 
-    historial = [(r.FECHA.strftime("%d/%m/%Y"), r.EVOLUCION[:60] + "...") for r in cursor.fetchall()]
-
+    # historial = [(r.FECHA.strftime("%d/%m/%Y"), r.EVOLUCION[:60] + "...") for r in cursor.fetchall()]
+    historial = [(r.FECHA.strftime("%d/%m/%Y"), r.EVOLUCION) for r in cursor.fetchall()]
+    
     conn.close()
 
     datos_paciente = {
@@ -244,6 +245,55 @@ def obtener_lista_diagnosticos():
         cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo_ADIAGPRES ORDER BY DESCRIPCION")
     else:
         cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo.ADIAGPRES ORDER BY DESCRIPCION")
+    resultados = cursor.fetchall()
+    conn.close()
+
+    return [(row.CODIGO, row.DESCRIPCION.strip()) for row in resultados]
+
+
+def obtener_lista_motivos_consulta():
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    if MODO_CONEXION == "access":
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo_AMOTCONS ORDER BY DESCRIPCION")
+    else:
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo.AMOTCONS ORDER BY DESCRIPCION")
+    resultados = cursor.fetchall()
+    conn.close()
+
+    return [(row.CODIGO, row.DESCRIPCION.strip()) for row in resultados]
+
+def obtener_lista_examenes_complementarios():
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    if MODO_CONEXION == "access":
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo_AEXCOM ORDER BY DESCRIPCION")
+    else:
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo.AEXCOM ORDER BY DESCRIPCION")
+    resultados = cursor.fetchall()
+    conn.close()
+
+    return [(row.CODIGO, row.DESCRIPCION.strip()) for row in resultados]
+
+def obtener_lista_tratamientos():
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    if MODO_CONEXION == "access":
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo_ATRATAM ORDER BY DESCRIPCION")
+    else:
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo.ATRATAM ORDER BY DESCRIPCION")
+    resultados = cursor.fetchall()
+    conn.close()
+
+    return [(row.CODIGO, row.DESCRIPCION.strip()) for row in resultados]
+
+def obtener_lista_derivaciones():
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    if MODO_CONEXION == "access":
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo_ADERIV ORDER BY DESCRIPCION")
+    else:
+        cursor.execute("SELECT CODIGO, DESCRIPCION FROM dbo.ADERIV ORDER BY DESCRIPCION")
     resultados = cursor.fetchall()
     conn.close()
 

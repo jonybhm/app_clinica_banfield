@@ -6,9 +6,9 @@ Created on Wed May 21 21:19:31 2025
 """
 
 # modulos/login.py
-from PyQt5.QtWidgets import QDialog, QLabel, QComboBox, QLineEdit, QPushButton, QVBoxLayout, QMessageBox,QApplication
+from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox, QApplication
 from acceso_db.repositorio_usuario import login_usuario, obtener_lista_usuarios
-from auxiliar.widgets_personalizados import ComboBoxLimitado
+from auxiliar.widgets_personalizados import ComboBoxBuscador
 
 class PantallaLogin(QDialog):
     def __init__(self):
@@ -20,8 +20,8 @@ class PantallaLogin(QDialog):
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Usuario"))
 
-        self.usuario_combo = ComboBoxLimitado()
-        self.usuario_combo.addItems(obtener_lista_usuarios())
+        self.usuario_combo = ComboBoxBuscador()
+        self.usuario_combo.setItems(obtener_lista_usuarios())
         layout.addWidget(self.usuario_combo)
 
         layout.addWidget(QLabel("Contraseña"))
@@ -47,19 +47,12 @@ class PantallaLogin(QDialog):
             self.accept()
         else:
             QMessageBox.warning(self, "Error", "Usuario o contraseña incorrectos o inactivo")
-            
+
     def _aplicar_tema_oscuro(self):
-        '''
-        Esta funcion toma la hoja de estilos y la aplica a la ventana principal
-
-        Returns
-        -------
-        None.
-
-        '''
         try:
             with open("assets/styles/estilo_oscuro.qss", "r") as f:
                 estilo = f.read()
                 self.setStyleSheet(estilo)
         except FileNotFoundError:
             print("Archivo de estilos no encontrado")
+
