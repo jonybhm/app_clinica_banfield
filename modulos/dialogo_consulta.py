@@ -16,6 +16,7 @@ from datetime import datetime
 from auxiliar.rtf_utiles import limpiar_evolucion
 from acceso_db.repositorio_historia import obtener_lista_diagnosticos, obtener_lista_motivos_consulta, obtener_lista_examenes_complementarios, obtener_lista_tratamientos, obtener_lista_derivaciones
 from auxiliar.widgets_personalizados import ComboBoxBuscador
+from acceso_db.conexion import obtener_conexion
 
 class DialogoConsulta(QDialog):
     def __init__(self, datos_paciente, historial, parent=None):
@@ -40,9 +41,17 @@ class DialogoConsulta(QDialog):
         layout.addWidget(tabs)
 
         # Botón inferior
-        boton_guardar = QPushButton("Guardar Evolución")
+        botones_layout = QHBoxLayout()
+        boton_guardar = QPushButton("Grabar")
         boton_guardar.clicked.connect(self.confirmar_guardado)
-        layout.addWidget(boton_guardar)
+
+        boton_salir = QPushButton("Salir")
+        boton_salir.clicked.connect(self.close)
+        
+        botones_layout.addWidget(boton_guardar)
+        botones_layout.addWidget(boton_salir)
+
+        layout.addLayout(botones_layout)
 
         self.setLayout(layout)
 
@@ -75,13 +84,7 @@ class DialogoConsulta(QDialog):
             historial_layout.addWidget(QLabel(f"{fecha}"))
             historial_layout.addWidget(texto)
             
-        '''
-        # Historial
-        layout.addRow(QLabel("Historial del Paciente:"))
-        for entrada in self.historial:
-            fecha, evolucion = entrada
-            layout.addRow(QLabel(f"{fecha}"), QLabel(evolucion[:50] + "..."))
-        '''
+   
 
         # self.tab_consulta.setLayout(layout)
         scroll = QScrollArea()
@@ -110,12 +113,13 @@ class DialogoConsulta(QDialog):
         self.tratamientos = obtener_lista_tratamientos()
         self.derivacion = obtener_lista_derivaciones()
 
-        # Convertir cada lista (codigo, descripcion) en "descripcion (codigo)"
-        diagnosticos_items = [f"{descripcion} ({codigo})" for codigo, descripcion in self.diagnosticos]
-        examenes_items = [f"{descripcion} ({codigo})" for codigo, descripcion in self.examenes]
-        motivos_items = [f"{descripcion} ({codigo})" for codigo, descripcion in self.motivos]
-        tratamientos_items = [f"{descripcion} ({codigo})" for codigo, descripcion in self.tratamientos]
-        derivacion_items = [f"{descripcion} ({codigo})" for codigo, descripcion in self.derivacion]
+        # Convertir cada lista (codigo, descripcion) en "descripcion (codigo)" y agregar opción vacía
+        diagnosticos_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.diagnosticos]
+        examenes_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.examenes]
+        motivos_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.motivos]
+        tratamientos_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.tratamientos]
+        derivacion_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.derivacion]
+
 
         # Cargar en los ComboBox con setItems
         self.cmb_diagnostico.setItems(diagnosticos_items)
@@ -123,6 +127,13 @@ class DialogoConsulta(QDialog):
         self.cmb_motivo.setItems(motivos_items)
         self.cmb_tratamiento.setItems(tratamientos_items)
         self.cmb_derivacion.setItems(derivacion_items)
+
+        # Forzar selección en el ítem vacío
+        self.cmb_diagnostico.setCurrentIndex(0)
+        self.cmb_examenes.setCurrentIndex(0)
+        self.cmb_motivo.setCurrentIndex(0)
+        self.cmb_tratamiento.setCurrentIndex(0)
+        self.cmb_derivacion.setCurrentIndex(0)
 
         layout.addWidget(QLabel("Motivo de Consulta:"))
         layout.addWidget(self.cmb_motivo)
@@ -170,16 +181,45 @@ class DialogoConsulta(QDialog):
         if "(" in texto_diag and texto_diag.endswith(")"):
             codigo_diag = texto_diag.split("(")[-1].rstrip(")")
 
-        texto_final = (
-            f"Motivo: {self.cmb_motivo.currentText()}\n"
-            f"Diagnóstico: {texto_diag} (Código: {codigo_diag})\n"
-            f"Tratamiento: {self.cmb_tratamiento.currentText()}\n"
-            f"Exámenes: {self.cmb_examenes.currentText()}\n"
-            f"Derivación: {self.cmb_derivacion.currentText()}\n"
+        texto_final = (            
             f"{self.txt_evolucion.toPlainText()}"
         )
 
-        print("Guardar en BD: ", texto_final)
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+
+        # Obtener datos base
+        hclin = self.datos_paciente["HCLIN"]
+        codpac = self.datos_paciente["CODPAC"]
+        id_profesional = self.datos_paciente["ID_PROFESIONAL"]  
+        fecha_actual = datetime.now().date()
+        hora_actual = datetime.now().strftime("%H:%M")
+
+        # Calcular SECUEN (máximo + 1 para este paciente)
+        cursor.execute("SELECT ISNULL(MAX(SECUEN), 0) FROM dbo.AHISTCLIN WHERE CODPAC = ?", (codpac,))
+        secuen = cursor.fetchone()[0] + 1
+
+        # Calcular PROTOCOLO (máximo + 1 en toda la tabla)
+        cursor.execute("SELECT ISNULL(MAX(PROTOCOLO), 0) FROM dbo.AHISTCLIN")
+        protocolo = cursor.fetchone()[0] + 1
+
+        # Insertar nueva evolución
+        cursor.execute("""
+            INSERT INTO dbo.AHISTCLIN (HCLIN, FECHA, SECUEN, PROFES, EVOLUCION, HORA, PROTOCOLO, CODPAC)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            hclin,
+            fecha_actual,
+            secuen,
+            id_profesional,
+            texto_final,
+            hora_actual,
+            protocolo,
+            codpac
+        ))
+
+        conn.commit()
+        conn.close()
+
         QMessageBox.information(self, "Éxito", "Evolución guardada correctamente")
         self.accept()
-

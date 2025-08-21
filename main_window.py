@@ -14,6 +14,8 @@ from PyQt5.QtCore import Qt
 from modulos.inicio import PantallaInicio
 from modulos.historia_clinica import PantallaHistoriaClinica
 from modulos.login import PantallaLogin
+from acceso_db.permisos_repo import tiene_permiso_admin
+from modulos.admin_usuarios import AdminUsuarios
 
 class MainWindow(QMainWindow):    
     '''
@@ -51,6 +53,11 @@ class MainWindow(QMainWindow):
         self.btn_inicio.clicked.connect(lambda: self.stack.setCurrentIndex(0))
         self.btn_historia.clicked.connect(lambda: self.stack.setCurrentIndex(1))
 
+        
+        # Mostrar boton para admins de sistema
+        if tiene_permiso_admin(datos_usuario["CODIGO"]):
+            self._agregar_admin_menu()
+
         # Layout horizontal con logo y botones
         nav_layout = QHBoxLayout()
         nav_layout.addWidget(logo)
@@ -73,13 +80,12 @@ class MainWindow(QMainWindow):
         tipo_usuario = "Médico" if datos_usuario["NIVEL"] == 5 else "Recepción"
         self.statusBar().showMessage(f"Usuario: {datos_usuario['APELLIDO']} | Puesto: {tipo_usuario}")
 
+
         # Aplicar tema oscuro
         QApplication.setStyle("Fusion")
-        self._aplicar_tema_oscuro()
-        
-        
-        
-        
+        self._aplicar_tema("assets/styles/estilo_oscuro.qss")
+
+
     def _crear_menu(self):
         '''
         Esta funcion crea una barra de menu
@@ -93,6 +99,17 @@ class MainWindow(QMainWindow):
         
         #Menu Archivo
         archivo_menu = menubar.addMenu("Archivo")
+        
+        #Temas
+        temas_menu = archivo_menu.addMenu("Temas")        
+        tema_oscuro_action = QAction("Oscuro", self)
+        tema_oscuro_action.triggered.connect(self._aplicar_tema_oscuro)
+        temas_menu.addAction(tema_oscuro_action)
+        tema_claro_action = QAction("Claro", self)
+        tema_claro_action.triggered.connect(self._aplicar_tema_claro)
+        temas_menu.addAction(tema_claro_action)
+
+        #Salir
         salir_action = QAction("Salir", self)
         salir_action.triggered.connect(self.close)
         archivo_menu.addAction(salir_action)
@@ -108,8 +125,8 @@ class MainWindow(QMainWindow):
         Esta funcion ejecuta el boton "Acerca de"
         '''
         QMessageBox.Information(self, "Acerca de", "Sistema de gestión Historias Clínicas")
-        
-    def _aplicar_tema_oscuro(self):
+
+    def _aplicar_tema(self, archivo):
         '''
         Esta funcion toma la hoja de estilos y la aplica a la ventana principal
 
@@ -119,11 +136,11 @@ class MainWindow(QMainWindow):
 
         '''
         try:
-            with open("assets/styles/estilo_oscuro.qss", "r") as f:
+            with open(archivo, "r") as f:
                 estilo = f.read()
                 self.setStyleSheet(estilo)
         except FileNotFoundError:
-            print("Archivo de estilos no encontrado")
+            print(f"Archivo de estilos {archivo} no encontrado")
             
         
     def login_exitoso(self, datos_usuario):
@@ -133,6 +150,23 @@ class MainWindow(QMainWindow):
         self.historia_clinica.id_profesional = datos_usuario.CODIGOEMPLEADO
         self.stack.setCurrentIndex(1)
         
+    
+    def _aplicar_tema_oscuro(self):
+        QApplication.setStyle("Fusion")
+        self._aplicar_tema("assets/styles/estilo_oscuro.qss")
+
+    def _aplicar_tema_claro(self):
+        QApplication.setStyle("Fusion")
+        self._aplicar_tema("assets/styles/estilo_claro.qss")
         
-        
-            
+    def _agregar_admin_menu(self):
+        admin_menu = self.menuBar().addMenu("Administración")
+        admin_action = QAction("Usuarios", self)
+        admin_action.triggered.connect(self._abrir_admin)
+        admin_menu.addAction(admin_action)
+
+    def _abrir_admin(self):
+        self.admin_window = AdminUsuarios(self.historia_clinica.id_profesional, self)
+        # self.admin_window.setWindowTitle("Administración de Usuarios")
+        # self.admin_window.resize(900, 600)
+        self.admin_window.show()

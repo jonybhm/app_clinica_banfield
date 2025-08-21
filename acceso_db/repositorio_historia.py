@@ -11,33 +11,41 @@ from datetime import datetime
 def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
     conn = obtener_conexion()
     cursor = conn.cursor()
-    parametros = [fecha, id_profesional]
 
     if MODO_CONEXION == "access":
         query = """
             SELECT 
                 t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR,
-                p.NOMBRE, p.FENAC, p.SEXO,
+                p.NOMBRE, p.FENAC, p.SEXO, p.HISTORIACLI,
                 h.EVOLUCION
             FROM 
                 ((dbo_AMOVTURN AS t
                 LEFT JOIN dbo_AHISTORPAC AS p ON t.CODPAC = p.CODPAC)
-                LEFT JOIN dbo_AHISTCLIN AS h ON (h.CODPAC = t.CODPAC AND h.FECHA = t.FECHTUR AND h.PROFES = t.CODIGO))
+                LEFT JOIN dbo_AHISTCLIN AS h 
+                    ON h.CODPAC = t.CODPAC 
+                    AND h.FECHA = t.FECHTUR 
+                    AND h.PROFES = ?)
             WHERE 
-                FORMAT(t.FECHTUR, 'yyyy-mm-dd') = ? AND t.CODIGO = ?
+                FORMAT(t.FECHTUR, 'yyyy-mm-dd') = ? 
+                AND t.CODIGO = ?
         """
-
+        parametros = [id_profesional, fecha, id_profesional]
     else:
         query = """
             SELECT 
                 t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR,
-                p.NOMBRE, p.FENAC, p.SEXO,
+                p.NOMBRE, p.FENAC, p.SEXO, p.HISTORIACLI,
                 h.EVOLUCION
             FROM dbo.AMOVTURN t
             LEFT JOIN dbo.AHISTORPAC p ON t.CODPAC = p.CODPAC
-            LEFT JOIN dbo.AHISTCLIN h ON h.CODPAC = t.CODPAC AND h.FECHA = t.FECHTUR AND h.PROFES = t.CODIGO
-            WHERE CONVERT(date, t.FECHTUR) = ? AND t.CODIGO = ?
+            LEFT JOIN dbo.AHISTCLIN h 
+                ON h.CODPAC = t.CODPAC 
+                AND h.FECHA = t.FECHTUR 
+                AND h.PROFES = ?
+            WHERE CONVERT(date, t.FECHTUR) = ? 
+              AND t.CODIGO = ?
         """
+        parametros = [id_profesional, fecha, id_profesional]
 
     if estado == "PENDIENTE":
         query += " AND (h.EVOLUCION IS NULL OR LEN(h.EVOLUCION) < 10)"
@@ -49,31 +57,37 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
     cursor.execute(query, parametros)
     resultados = cursor.fetchall()
     conn.close()
-    
+
     datos = []
     for row in resultados:
-        codpac, horatur, mintur, horarec, fecha, nombre, fenac, sexo, evolucion = row
+        codpac, horatur, mintur, horarec, fecha_tur, nombre, fenac, sexo, hclin, evolucion = row
 
         edad = calcular_edad(fenac)
         hora_turno = horatur * 100 + mintur if horatur is not None and mintur is not None else None
         espera = calcular_espera(horarec, hora_turno)
         sexo_txt = "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-"
-        
-        datos.append((
-            codpac,
-            nombre,
-            f"{edad} años" if edad else "?",
-            sexo_txt,
-            format_hora(horarec),
-            espera,
-            format_hora(hora_turno),
-            nombre_profesional  # ← ahora sí muestra el médico
-        ))
 
-    print("Resultados:", resultados)
+        datos.append({
+            "CODPAC": codpac,
+            "NOMBRE": nombre,
+            "EDAD": f"{edad} años" if edad else "?",
+            "SEXO": sexo_txt,
+            "FECHA": fecha_tur,
+            "HORA": format_hora(hora_turno),
+            "HORA_REC": format_hora(horarec),
+            "ESPERA": espera,
+            "HCLIN": hclin,
+            "EVOLUCION": evolucion,
+            "ENTIDAD": None,  # si tenés entidad de prepaga u obra social, la podés añadir
+            "PROFESIONAL": nombre_profesional,
+            "ID_PROFESIONAL": id_profesional
+        })
+
+    print("Resultados crudos:", resultados)
     print("Datos procesados:", datos)
-    
+
     return datos
+
 
 def calcular_edad(fecha_nacimiento):
     if not fecha_nacimiento or not isinstance(fecha_nacimiento, datetime):

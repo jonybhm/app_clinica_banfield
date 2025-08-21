@@ -6,6 +6,7 @@ Created on Wed May 21 19:25:11 2025
 """
 from acceso_db.conexion import obtener_conexion
 from acceso_db.config import MODO_CONEXION
+from acceso_db.conexion import obtener_conexion
 
 def login_usuario(usuario, clave):
     conn = obtener_conexion()
@@ -53,3 +54,13 @@ def obtener_lista_usuarios():
     resultados = [row[0].strip() for row in cursor.fetchall()]
     conn.close()
     return resultados
+
+
+
+def obtener_usuarios_con_codigo():
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    cursor.execute("SELECT CODIGO, APELLIDO FROM dbo.AUSUARIOS")
+    rows = cursor.fetchall()
+    conn.close()
+    return [(row.CODIGO, row.APELLIDO) for row in rows]
