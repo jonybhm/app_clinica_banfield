@@ -4,7 +4,7 @@ Created on Wed Jul 16 13:06:59 2025
 
 @author: Jonathan
 """
-
+#auxiliar/widgets_personalizados.py
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtCore import Qt
 

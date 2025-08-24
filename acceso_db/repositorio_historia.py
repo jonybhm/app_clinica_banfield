@@ -178,78 +178,52 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
     conn = obtener_conexion()
     cursor = conn.cursor()
 
-    # Obtener datos del paciente
-    if MODO_CONEXION == "access":
-        cursor.execute("""
-            SELECT HISTORIACLI, ENTIDAD, NOMBRE, FENAC, SEXO FROM dbo_AHISTORPAC WHERE CODPAC = ?
-        """, (codpac,))
-    else:
-        cursor.execute("""
-            SELECT HISTORIACLI, ENTIDAD, NOMBRE, FENAC, SEXO FROM dbo.AHISTORPAC WHERE CODPAC = ?
-        """, (codpac,))
-    pac = cursor.fetchone()
-    if not pac:
+    # Datos del paciente
+    cursor.execute("""
+        SELECT CODPAC, HISTORIACLI, NOMBRE, FENAC, SEXO
+        FROM dbo.AHISTORPAC
+        WHERE CODPAC = ?
+    """, (codpac,))
+    paciente = cursor.fetchone()
+
+    if not paciente:
         conn.close()
         return None, []
 
-    hclin = pac.HISTORIACLI
-    entidad = pac.ENTIDAD
-    nombre = pac.NOMBRE
-    fenac = pac.FENAC
-    sexo = pac.SEXO
-    edad = calcular_edad(fenac)
-
-    # Obtener nombre de la obra social (AOBRASPX)
-    if MODO_CONEXION == "access":
-        cursor.execute("""
-            SELECT DESOBRA FROM dbo_AOBRASPX WHERE CODOBRA = ?
-        """, (entidad,))
-    else:
-        cursor.execute("""
-            SELECT DESOBRA FROM dbo.AOBRASPX WHERE CODOBRA = ?
-        """, (entidad,))
-    resultado = cursor.fetchone()
-    nombre_obra_social = resultado.DESOBRA.strip() if resultado else f"Obra desconocida ({entidad})"
-
-    # Obtener nuevo protocolo
-    if MODO_CONEXION == "access":
-        cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo_AHISTCLIN")
-    else:
-        cursor.execute("SELECT MAX(PROTOCOLO) FROM dbo.AHISTCLIN")
-    max_proto = cursor.fetchone()[0] or 1000000
-    protocolo = max_proto + 1
-
-    # Historia clínica
-    if MODO_CONEXION == "access":
-        cursor.execute("""
-            SELECT FECHA, EVOLUCION FROM dbo_AHISTCLIN
-            WHERE CODPAC = ? ORDER BY FECHA DESC
-        """, (codpac,))
-    else:
-        cursor.execute("""
-            SELECT FECHA, EVOLUCION FROM dbo.AHISTCLIN
-            WHERE CODPAC = ? ORDER BY FECHA DESC
-        """, (codpac,))
-
-    # historial = [(r.FECHA.strftime("%d/%m/%Y"), r.EVOLUCION[:60] + "...") for r in cursor.fetchall()]
-    historial = [(r.FECHA.strftime("%d/%m/%Y"), r.EVOLUCION) for r in cursor.fetchall()]
-    
-    conn.close()
+    codpac, hclin, nombre, fenac, sexo = paciente
 
     datos_paciente = {
-        "NOMBRE": nombre,
-        "FECHA": datetime.today().strftime("%Y-%m-%d"),
+        "CODPAC": codpac,
         "HCLIN": hclin,
-        "HORA": datetime.now().strftime("%H:%M:%S"),
-        "PROTOCOLO": protocolo,
-        "EDAD": f"{edad} años" if edad else "?",
+        "NOMBRE": nombre,
+        "EDAD": calcular_edad(fenac),
         "SEXO": "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-",
-        "ENTIDAD": nombre_obra_social,  # ← nombre en vez de número
-        "PROFESIONAL": id_profesional,
-        "CODPAC": codpac
+        "ID_PROFESIONAL": id_profesional
     }
 
+    # Historial clínico con profesional, hora y protocolo
+    cursor.execute("""
+        SELECT h.FECHA, h.EVOLUCION, m.NOMBRE AS PROFESIONAL, h.HORA, h.PROTOCOLO
+        FROM dbo.AHISTCLIN h
+        LEFT JOIN dbo.AMEDEJEC m ON h.PROFES = m.CODMED
+        WHERE h.CODPAC = ?
+        ORDER BY h.FECHA DESC, h.HORA DESC
+    """, (codpac,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    historial = []
+    for row in rows:
+        historial.append({
+            "FECHA": row.FECHA.strftime("%d/%m/%Y") if row.FECHA else "",
+            "EVOLUCION": row.EVOLUCION or "",
+            "PROFESIONAL": row.PROFESIONAL or "",
+            "HORA": row.HORA.strftime("%H:%M:%S") if row.HORA else "",
+            "PROTOCOLO": row.PROTOCOLO or ""
+        })
+
     return datos_paciente, historial
+
 
 
 def obtener_lista_diagnosticos():
@@ -312,3 +286,47 @@ def obtener_lista_derivaciones():
     conn.close()
 
     return [(row.CODIGO, row.DESCRIPCION.strip()) for row in resultados]
+
+def obtener_pacientes():
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        SELECT CODPAC, NOMBRE, DOCUMENTO
+        FROM dbo.AHISTORPAC
+        ORDER BY NOMBRE
+        ''')
+    filas = cursor.fetchall()
+    conn.close()
+    return [{"CODPAC": f.CODPAC, "NOMBRE": f.NOMBRE, "DNI": f.DOCUMENTO} for f in filas]
+
+def buscar_pacientes(nombre=None, dni=None):
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT TOP 50 p.CODPAC, p.NOMBRE, p.DOCUMENTO, 
+               (SELECT TOP 10 EVOLUCION 
+                FROM dbo.AHISTCLIN h 
+                WHERE h.CODPAC = p.CODPAC 
+                ORDER BY FECHA DESC, HORA DESC) AS EVOLUCION
+        FROM dbo.AHISTORPAC p
+        WHERE 1=1
+    """
+    params = []
+    if nombre and nombre.strip():
+        query += " AND p.NOMBRE LIKE ?"
+        params.append(f"%{nombre}%")
+    if dni and dni.strip():
+        query += " AND p.DNI = ?"
+        params.append(dni)
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+
+    # Guardar nombres de columnas antes de cerrar conexión
+    cols = [col[0] for col in cursor.description]
+
+    conn.close()
+    return [dict(zip(cols, row)) for row in rows]
+

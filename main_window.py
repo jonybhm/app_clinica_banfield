@@ -16,6 +16,8 @@ from modulos.historia_clinica import PantallaHistoriaClinica
 from modulos.login import PantallaLogin
 from acceso_db.permisos_repo import tiene_permiso_admin
 from modulos.admin_usuarios import AdminUsuarios
+from modulos.pacientes import PantallaPacientes  
+
 
 class MainWindow(QMainWindow):    
     '''
@@ -31,7 +33,11 @@ class MainWindow(QMainWindow):
         # Inicializar pantallas
         self.inicio = PantallaInicio()
         self.historia_clinica = PantallaHistoriaClinica()
-
+        self.pacientes = PantallaPacientes( 
+            id_profesional=datos_usuario.get("CODMED") or 0,
+            nombre_profesional=datos_usuario["APELLIDO"]
+            )
+        
         # Asignar ID profesional (se usa en historia_clinica)
         self.historia_clinica.id_profesional = datos_usuario.get("CODMED") or 0
         self.historia_clinica.nombre_profesional = datos_usuario["APELLIDO"]
@@ -46,14 +52,16 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
         self.stack.addWidget(self.inicio)            # índice 0
         self.stack.addWidget(self.historia_clinica)  # índice 1
+        self.stack.addWidget(self.pacientes)          # índice 2
 
         # Botones de navegación
         self.btn_inicio = QPushButton("INICIO")
         self.btn_historia = QPushButton("HISTORIA CLÍNICA")
+        self.btn_pacientes = QPushButton("PACIENTES")
         self.btn_inicio.clicked.connect(lambda: self.stack.setCurrentIndex(0))
         self.btn_historia.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+        self.btn_pacientes.clicked.connect(lambda: self.stack.setCurrentIndex(2))
 
-        
         # Mostrar boton para admins de sistema
         if tiene_permiso_admin(datos_usuario["CODIGO"]):
             self._agregar_admin_menu()
@@ -63,6 +71,7 @@ class MainWindow(QMainWindow):
         nav_layout.addWidget(logo)
         nav_layout.addWidget(self.btn_inicio)
         nav_layout.addWidget(self.btn_historia)
+        nav_layout.addWidget(self.btn_pacientes)
 
         # Layout vertical principal
         layout = QVBoxLayout()

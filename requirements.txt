@@ -1,3 +1,5 @@
 pyqt5
 pyodbc
 striprtf
+reportlab
+PyQtWebEngine

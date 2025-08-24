@@ -38,4 +38,4 @@ def buscar_valor_en_bd(valor_busqueda):
     
 
 # USO:
-buscar_valor_en_bd("MENDEZ GERARDO")
+buscar_valor_en_bd("Válvula mitral: Relajación del VI")

@@ -6,7 +6,7 @@ Created on Mon Jul 14 13:42:13 2025
 """
 
 
-
+#modulos/dialogo_consulta.py
 from PyQt5.QtWidgets import (
     QDialog, QTabWidget, QWidget, QVBoxLayout, QLabel, QPushButton,
     QHBoxLayout, QTextEdit, QMessageBox, QFormLayout, QTextEdit, QScrollArea, QComboBox, QWidget
@@ -17,6 +17,8 @@ from auxiliar.rtf_utiles import limpiar_evolucion
 from acceso_db.repositorio_historia import obtener_lista_diagnosticos, obtener_lista_motivos_consulta, obtener_lista_examenes_complementarios, obtener_lista_tratamientos, obtener_lista_derivaciones
 from auxiliar.widgets_personalizados import ComboBoxBuscador
 from acceso_db.conexion import obtener_conexion
+import os
+from auxiliar.pdf_utiles import generar_pdf_historia
 
 class DialogoConsulta(QDialog):
     def __init__(self, datos_paciente, historial, parent=None):
@@ -47,9 +49,13 @@ class DialogoConsulta(QDialog):
 
         boton_salir = QPushButton("Salir")
         boton_salir.clicked.connect(self.close)
-        
+
+        boton_imprimir = QPushButton("Imprimir")
+        boton_imprimir.clicked.connect(self.abrir_vista_previa)
+
         botones_layout.addWidget(boton_guardar)
         botones_layout.addWidget(boton_salir)
+        botones_layout.addWidget(boton_imprimir)
 
         layout.addLayout(botones_layout)
 
@@ -75,15 +81,29 @@ class DialogoConsulta(QDialog):
         historial_widget = QWidget()
         historial_layout = QVBoxLayout(historial_widget)
         
-        for fecha, evolucion in self.historial:
+        for entrada in self.historial:
+            fecha = entrada.get("FECHA", "")
+            evolucion = entrada.get("EVOLUCION", "")
+            profesional = entrada.get("PROFESIONAL", "")
+            hora = entrada.get("HORA", "")
+            protocolo = entrada.get("PROTOCOLO", "")
+
             evolucion_limpia = limpiar_evolucion(evolucion)
+
             texto = QTextEdit()
             texto.setReadOnly(True)
-            texto.setPlainText(evolucion_limpia)
-            texto.setFixedHeight(100)  # altura fija para cada evolución
-            historial_layout.addWidget(QLabel(f"{fecha}"))
+            texto.setPlainText(
+                f"Profesional: {profesional}\n"
+                f"Hora: {hora}\n"
+                f"Protocolo: {protocolo}\n"
+                f"{evolucion_limpia}"
+            )
+            texto.setFixedHeight(120)
+
+            historial_layout.addWidget(QLabel(str(fecha)))
             historial_layout.addWidget(texto)
-            
+
+                
    
 
         # self.tab_consulta.setLayout(layout)
@@ -223,3 +243,10 @@ class DialogoConsulta(QDialog):
 
         QMessageBox.information(self, "Éxito", "Evolución guardada correctamente")
         self.accept()
+    
+    def abrir_vista_previa(self):
+        # Generar PDF temporal
+        archivo = generar_pdf_historia(self.datos_paciente, self.historial)
+
+        # Opción A: abrir con visor externo
+        os.startfile(archivo)  # en Windows abre el visor predeterminado
