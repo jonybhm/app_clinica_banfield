@@ -38,4 +38,4 @@ def buscar_valor_en_bd(valor_busqueda):
     
 
 # USO:
-buscar_valor_en_bd("Válvula mitral: Relajación del VI")
+buscar_valor_en_bd("13/08/2025")

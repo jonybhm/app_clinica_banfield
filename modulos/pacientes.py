@@ -83,9 +83,9 @@ class PantallaPacientes(QWidget):
         # Poblar tabla
         self.tabla.clear()
         self.tabla.setRowCount(len(resultados))
-        self.tabla.setColumnCount(5)
+        self.tabla.setColumnCount(3)
         self.tabla.setHorizontalHeaderLabels([
-            "Nombre", "DNI", "Última Evolución"
+            "Nombre", "DOCUMENTO", "Última Evolución"
         ])
 
         for fila_idx, fila in enumerate(resultados):
@@ -94,7 +94,7 @@ class PantallaPacientes(QWidget):
 
             valores = [
                 fila.get("NOMBRE", ""),
-                fila.get("DNI", ""),   # ← acá estaba "DOCUMENTO"
+                fila.get("DOCUMENTO", ""),   # ← acá estaba "DOCUMENTO"
                 evolucion_limpia[:80] + "..." if evolucion_limpia else ""
             ]
             for col_idx, valor in enumerate(valores):

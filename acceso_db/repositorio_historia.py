@@ -4,6 +4,8 @@ Created on Wed May 21 19:20:39 2025
 
 @author: Jonathan
 """
+
+#acceso_db/repositorio_historia.py
 from acceso_db.conexion import obtener_conexion
 from acceso_db.config import MODO_CONEXION
 from datetime import datetime
@@ -12,40 +14,22 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
     conn = obtener_conexion()
     cursor = conn.cursor()
 
-    if MODO_CONEXION == "access":
-        query = """
-            SELECT 
-                t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR,
-                p.NOMBRE, p.FENAC, p.SEXO, p.HISTORIACLI,
-                h.EVOLUCION
-            FROM 
-                ((dbo_AMOVTURN AS t
-                LEFT JOIN dbo_AHISTORPAC AS p ON t.CODPAC = p.CODPAC)
-                LEFT JOIN dbo_AHISTCLIN AS h 
-                    ON h.CODPAC = t.CODPAC 
-                    AND h.FECHA = t.FECHTUR 
-                    AND h.PROFES = ?)
-            WHERE 
-                FORMAT(t.FECHTUR, 'yyyy-mm-dd') = ? 
-                AND t.CODIGO = ?
-        """
-        parametros = [id_profesional, fecha, id_profesional]
-    else:
-        query = """
-            SELECT 
-                t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR,
-                p.NOMBRE, p.FENAC, p.SEXO, p.HISTORIACLI,
-                h.EVOLUCION
-            FROM dbo.AMOVTURN t
-            LEFT JOIN dbo.AHISTORPAC p ON t.CODPAC = p.CODPAC
-            LEFT JOIN dbo.AHISTCLIN h 
-                ON h.CODPAC = t.CODPAC 
-                AND h.FECHA = t.FECHTUR 
-                AND h.PROFES = ?
-            WHERE CONVERT(date, t.FECHTUR) = ? 
-              AND t.CODIGO = ?
-        """
-        parametros = [id_profesional, fecha, id_profesional]
+    query = """
+        SELECT 
+            t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR, t.RECEPCION,
+            p.NOMBRE, p.FENAC, p.SEXO, p.HISTORIACLI,
+            h.EVOLUCION
+        FROM dbo.AMOVTURN t
+        LEFT JOIN dbo.AHISTORPAC p ON t.CODPAC = p.CODPAC
+        LEFT JOIN dbo.AHISTCLIN h 
+            ON h.CODPAC = t.CODPAC 
+            AND h.FECHA = t.FECHTUR 
+            AND h.PROFES = ?
+        WHERE CONVERT(date, t.FECHTUR) = ? 
+          AND t.CODIGO = ?
+    """
+
+    params = [id_profesional, fecha, id_profesional]
 
     if estado == "PENDIENTE":
         query += " AND (h.EVOLUCION IS NULL OR LEN(h.EVOLUCION) < 10)"
@@ -54,17 +38,17 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
 
     query += " ORDER BY t.HORATUR, t.MINTUR"
 
-    cursor.execute(query, parametros)
+    cursor.execute(query, params)
     resultados = cursor.fetchall()
     conn.close()
 
     datos = []
     for row in resultados:
-        codpac, horatur, mintur, horarec, fecha_tur, nombre, fenac, sexo, hclin, evolucion = row
+        codpac, horatur, mintur, horarec, fecha_tur, recepcion, nombre, fenac, sexo, hclin, evolucion = row
 
         edad = calcular_edad(fenac)
         hora_turno = horatur * 100 + mintur if horatur is not None and mintur is not None else None
-        espera = calcular_espera(horarec, hora_turno)
+        espera = "-"  # el temporizador en la UI lo calcula en vivo
         sexo_txt = "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-"
 
         datos.append({
@@ -76,17 +60,16 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
             "HORA": format_hora(hora_turno),
             "HORA_REC": format_hora(horarec),
             "ESPERA": espera,
+            "RECEPCION": recepcion,
             "HCLIN": hclin,
             "EVOLUCION": evolucion,
-            "ENTIDAD": None,  # si tenés entidad de prepaga u obra social, la podés añadir
             "PROFESIONAL": nombre_profesional,
             "ID_PROFESIONAL": id_profesional
         })
 
-    print("Resultados crudos:", resultados)
-    print("Datos procesados:", datos)
-
     return datos
+
+
 
 
 def calcular_edad(fecha_nacimiento):
@@ -298,7 +281,7 @@ def obtener_pacientes():
         ''')
     filas = cursor.fetchall()
     conn.close()
-    return [{"CODPAC": f.CODPAC, "NOMBRE": f.NOMBRE, "DNI": f.DOCUMENTO} for f in filas]
+    return [{"CODPAC": f.CODPAC, "NOMBRE": f.NOMBRE, "DOCUMENTO": f.DOCUMENTO} for f in filas]
 
 def buscar_pacientes(nombre=None, dni=None):
     conn = obtener_conexion()
@@ -306,7 +289,7 @@ def buscar_pacientes(nombre=None, dni=None):
 
     query = """
         SELECT TOP 50 p.CODPAC, p.NOMBRE, p.DOCUMENTO, 
-               (SELECT TOP 10 EVOLUCION 
+               (SELECT TOP 1 EVOLUCION 
                 FROM dbo.AHISTCLIN h 
                 WHERE h.CODPAC = p.CODPAC 
                 ORDER BY FECHA DESC, HORA DESC) AS EVOLUCION
@@ -318,7 +301,7 @@ def buscar_pacientes(nombre=None, dni=None):
         query += " AND p.NOMBRE LIKE ?"
         params.append(f"%{nombre}%")
     if dni and dni.strip():
-        query += " AND p.DNI = ?"
+        query += " AND p.DOCUMENTO = ?"
         params.append(dni)
 
     cursor.execute(query, params)
@@ -330,3 +313,45 @@ def buscar_pacientes(nombre=None, dni=None):
     conn.close()
     return [dict(zip(cols, row)) for row in rows]
 
+def marcar_turno_atendido(codpac, id_profesional, fecha):
+    """Marca un turno como atendido y registra hora de recepción si no estaba"""
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+
+    hora_sistema = datetime.now().strftime("%H:%M:%S")
+
+    query = """
+        UPDATE dbo.AMOVTURN
+        SET ATENDIDO = 1,
+            HORAREC = ISNULL(HORAREC, ?)
+        WHERE CODPAC = ? AND CODIGO = ? AND CONVERT(date, FECHTUR) = ?
+    """
+    cursor.execute(query, (hora_sistema, codpac, id_profesional, fecha))
+    conn.commit()
+    conn.close()
+
+
+def tiene_turnos_en_fecha(fecha, id_profesional):
+    """Devuelve True si el profesional tiene turnos ese día"""
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT COUNT(*) 
+        FROM dbo.AMOVTURN
+        WHERE CONVERT(date, FECHTUR) = ? AND CODIGO = ?
+    """, (fecha, id_profesional))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count > 0
+
+def obtener_dias_con_turnos(id_profesional):
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT CONVERT(date, FECHTUR) 
+        FROM dbo.AMOVTURN
+        WHERE CODIGO = ?
+    """, (id_profesional,))
+    filas = cursor.fetchall()
+    conn.close()
+    return [f[0] for f in filas if f[0] is not None]

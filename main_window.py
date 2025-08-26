@@ -4,12 +4,12 @@ Created on Thu May 15 22:24:11 2025
 
 @author: Jonathan
 """
-
+#main_window.py
 from PyQt5.QtWidgets import (
     QMainWindow, QPushButton, QStackedWidget, QWidget, QLabel,
     QVBoxLayout, QHBoxLayout, QApplication, QMenuBar, QMenu, QAction, QMessageBox
 )
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtCore import Qt
 from modulos.inicio import PantallaInicio
 from modulos.historia_clinica import PantallaHistoriaClinica
@@ -26,21 +26,11 @@ class MainWindow(QMainWindow):
     '''
     def __init__(self, datos_usuario):  # ← RECIBE los datos de usuario
         super().__init__()
-
-        self.setWindowTitle("Clínica Banfield")
-        self.setGeometry(100, 100, 800, 600)
-
-        # Inicializar pantallas
-        self.inicio = PantallaInicio()
-        self.historia_clinica = PantallaHistoriaClinica()
-        self.pacientes = PantallaPacientes( 
-            id_profesional=datos_usuario.get("CODMED") or 0,
-            nombre_profesional=datos_usuario["APELLIDO"]
-            )
+        self.datos_usuario = datos_usuario
         
-        # Asignar ID profesional (se usa en historia_clinica)
-        self.historia_clinica.id_profesional = datos_usuario.get("CODMED") or 0
-        self.historia_clinica.nombre_profesional = datos_usuario["APELLIDO"]
+        self.setWindowTitle("Clínica Banfield")
+        self.setGeometry(200, 100, 900, 700)
+
 
         # Crear logo
         logo = QLabel()
@@ -48,47 +38,43 @@ class MainWindow(QMainWindow):
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
 
-        # Stack de pantallas
-        self.stack = QStackedWidget()
-        self.stack.addWidget(self.inicio)            # índice 0
-        self.stack.addWidget(self.historia_clinica)  # índice 1
-        self.stack.addWidget(self.pacientes)          # índice 2
+        # Botones principales con imágenes
+        btn_historia = QPushButton("Historia Clínica")
+        btn_historia.setIcon(QIcon("assets/icons/historia.png"))
+        btn_historia.setIconSize(pixmap.size())
+        btn_historia.setFixedSize(250, 120)
+        btn_historia.clicked.connect(self.abrir_historia_clinica)
 
-        # Botones de navegación
-        self.btn_inicio = QPushButton("INICIO")
-        self.btn_historia = QPushButton("HISTORIA CLÍNICA")
-        self.btn_pacientes = QPushButton("PACIENTES")
-        self.btn_inicio.clicked.connect(lambda: self.stack.setCurrentIndex(0))
-        self.btn_historia.clicked.connect(lambda: self.stack.setCurrentIndex(1))
-        self.btn_pacientes.clicked.connect(lambda: self.stack.setCurrentIndex(2))
+        btn_pacientes = QPushButton("Pacientes")
+        btn_pacientes.setIcon(QIcon("assets/icons/pacientes.png"))
+        btn_pacientes.setIconSize(pixmap.size())
+        btn_pacientes.setFixedSize(250, 120)
+        btn_pacientes.clicked.connect(self.abrir_pacientes)
 
-        # Mostrar boton para admins de sistema
-        if tiene_permiso_admin(datos_usuario["CODIGO"]):
-            self._agregar_admin_menu()
+        # Layout central
+        botones_layout = QHBoxLayout()
+        botones_layout.addStretch()
+        botones_layout.addWidget(btn_historia)
+        botones_layout.addSpacing(50)
+        botones_layout.addWidget(btn_pacientes)
+        botones_layout.addStretch()
 
-        # Layout horizontal con logo y botones
-        nav_layout = QHBoxLayout()
-        nav_layout.addWidget(logo)
-        nav_layout.addWidget(self.btn_inicio)
-        nav_layout.addWidget(self.btn_historia)
-        nav_layout.addWidget(self.btn_pacientes)
-
-        # Layout vertical principal
         layout = QVBoxLayout()
-        layout.addLayout(nav_layout)
-        layout.addWidget(self.stack)
+        layout.addWidget(logo)
+        layout.addSpacing(40)
+        layout.addLayout(botones_layout)
+        layout.addStretch()
 
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
 
-        # Crear barra de menú
+        # Barra de menú
         self._crear_menu()
 
-        # Mostrar tipo de usuario en consola
+        # Status bar
         tipo_usuario = "Médico" if datos_usuario["NIVEL"] == 5 else "Recepción"
-        self.statusBar().showMessage(f"Usuario: {datos_usuario['APELLIDO']} | Puesto: {tipo_usuario}")
-
+        self.statusBar().showMessage(f"Usuario: {datos_usuario['APELLIDO']} | Puesto: {tipo_usuario}")  
 
         # Aplicar tema oscuro
         QApplication.setStyle("Fusion")
@@ -96,21 +82,10 @@ class MainWindow(QMainWindow):
 
 
     def _crear_menu(self):
-        '''
-        Esta funcion crea una barra de menu
-
-        Returns
-        -------
-        None.
-
-        '''
         menubar = self.menuBar()
-        
-        #Menu Archivo
         archivo_menu = menubar.addMenu("Archivo")
-        
-        #Temas
-        temas_menu = archivo_menu.addMenu("Temas")        
+
+        temas_menu = archivo_menu.addMenu("Temas")
         tema_oscuro_action = QAction("Oscuro", self)
         tema_oscuro_action.triggered.connect(self._aplicar_tema_oscuro)
         temas_menu.addAction(tema_oscuro_action)
@@ -118,16 +93,28 @@ class MainWindow(QMainWindow):
         tema_claro_action.triggered.connect(self._aplicar_tema_claro)
         temas_menu.addAction(tema_claro_action)
 
-        #Salir
         salir_action = QAction("Salir", self)
         salir_action.triggered.connect(self.close)
         archivo_menu.addAction(salir_action)
-        
-        #Menu Ayuda
+
         ayuda_menu = menubar.addMenu("Ayuda")
         acerca_action = QAction("Acerca de", self)
         acerca_action.triggered.connect(self._mostrar_acerca)
         ayuda_menu.addAction(acerca_action)
+
+        if tiene_permiso_admin(self.datos_usuario["CODIGO"]):
+            self._agregar_admin_menu()
+
+    def _agregar_admin_menu(self):
+        admin_menu = self.menuBar().addMenu("Administración")
+        admin_action = QAction("Usuarios", self)
+        admin_action.triggered.connect(self._abrir_admin)
+        admin_menu.addAction(admin_action)
+
+    def _abrir_admin(self):
+        codmed = self.datos_usuario.get("CODMED") or 0
+        self.admin_window = AdminUsuarios(codmed, self)
+        self.admin_window.show()
         
     def _mostrar_acerca(self):
         '''
@@ -147,7 +134,7 @@ class MainWindow(QMainWindow):
         try:
             with open(archivo, "r") as f:
                 estilo = f.read()
-                self.setStyleSheet(estilo)
+                QApplication.instance().setStyleSheet(estilo)  # ✅ aplica globalmente
         except FileNotFoundError:
             print(f"Archivo de estilos {archivo} no encontrado")
             
@@ -174,8 +161,60 @@ class MainWindow(QMainWindow):
         admin_action.triggered.connect(self._abrir_admin)
         admin_menu.addAction(admin_action)
 
-    def _abrir_admin(self):
-        self.admin_window = AdminUsuarios(self.historia_clinica.id_profesional, self)
-        # self.admin_window.setWindowTitle("Administración de Usuarios")
-        # self.admin_window.resize(900, 600)
-        self.admin_window.show()
+
+     # -------- Abrir ventanas nuevas ----------
+    def abrir_historia_clinica(self):
+        self.historia_window = HistoriaClinicaWindow(self.datos_usuario)
+        self.historia_window.show()
+
+    def abrir_pacientes(self):
+        self.pacientes_window = PacientesWindow(self.datos_usuario)
+        self.pacientes_window.show()
+
+
+# Ventana secundaria para Historia Clínica
+class HistoriaClinicaWindow(QMainWindow):
+    def __init__(self, datos_usuario):
+        super().__init__()
+        self.setWindowTitle("Historia Clínica")
+        self.setGeometry(250, 150, 900, 600)
+
+        widget = PantallaHistoriaClinica()
+        widget.id_profesional = datos_usuario.get("CODMED") or 0
+        widget.nombre_profesional = datos_usuario["APELLIDO"]
+        widget.buscar_turnos_ui()
+
+        btn_volver = QPushButton("Volver al Menú Principal")
+        btn_volver.clicked.connect(self.close)
+
+        layout = QVBoxLayout()
+        layout.addWidget(widget)
+        layout.addWidget(btn_volver)
+
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+
+# Ventana secundaria para Pacientes
+class PacientesWindow(QMainWindow):
+    def __init__(self, datos_usuario):
+        super().__init__()
+        self.setWindowTitle("Pacientes")
+        self.setGeometry(250, 150, 900, 600)
+
+        widget = PantallaPacientes(
+            id_profesional=datos_usuario.get("CODMED") or 0,
+            nombre_profesional=datos_usuario["APELLIDO"]
+        )
+
+        btn_volver = QPushButton("Volver al Menú Principal")
+        btn_volver.clicked.connect(self.close)
+
+        layout = QVBoxLayout()
+        layout.addWidget(widget)
+        layout.addWidget(btn_volver)
+
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
