@@ -17,9 +17,11 @@ from modulos.login import PantallaLogin
 from acceso_db.permisos_repo import tiene_permiso_admin
 from modulos.admin_usuarios import AdminUsuarios
 from modulos.pacientes import PantallaPacientes  
+from PyQt5.QtCore import pyqtSignal
 
+class MainWindow(QMainWindow):
+    logout_signal = pyqtSignal()
 
-class MainWindow(QMainWindow):    
     '''
     Clase que representa la ventana principal
     Hereda propiedades de PyQT (Main Window)    
@@ -39,7 +41,7 @@ class MainWindow(QMainWindow):
         logo.setAlignment(Qt.AlignCenter)
 
         # Botones principales con imágenes
-        btn_historia = QPushButton("Historia Clínica")
+        btn_historia = QPushButton("Turnos y Agendas")
         btn_historia.setIcon(QIcon("assets/icons/historia.png"))
         btn_historia.setIconSize(pixmap.size())
         btn_historia.setFixedSize(250, 120)
@@ -93,6 +95,12 @@ class MainWindow(QMainWindow):
         tema_claro_action.triggered.connect(self._aplicar_tema_claro)
         temas_menu.addAction(tema_claro_action)
 
+        # --- Nueva opción: Cambiar de usuario ---
+        cambiar_usuario_action = QAction("Cambiar de usuario", self)
+        cambiar_usuario_action.triggered.connect(self._cambiar_usuario)
+        archivo_menu.addAction(cambiar_usuario_action)
+
+        # --- Opción salir ---
         salir_action = QAction("Salir", self)
         salir_action.triggered.connect(self.close)
         archivo_menu.addAction(salir_action)
@@ -104,6 +112,13 @@ class MainWindow(QMainWindow):
 
         if tiene_permiso_admin(self.datos_usuario["CODIGO"]):
             self._agregar_admin_menu()
+
+    def _cambiar_usuario(self):
+        """
+        Emitir señal para cerrar sesión y volver al login.
+        """
+        self.logout_signal.emit()
+
 
     def _agregar_admin_menu(self):
         admin_menu = self.menuBar().addMenu("Administración")
@@ -125,7 +140,9 @@ class MainWindow(QMainWindow):
             "Acerca de",
             "Sistema de gestión de Historias Clínicas\n\n"
             "📌 Funcionalidades:\n"
-            "- Historia Clínica: buscar turnos por fecha y gestionar evoluciones.\n"
+            "- Turnos y Agendas: buscar turnos por fecha y gestionar evoluciones.\n"
+            "- Informes: buscar informes de pacientes e imprimrlos.\n"
+            "- Historias Clínicas: buscar e imprimir historial paciente.\n"
             "- Pacientes: buscar historias clínicas por nombre o DNI.\n\n"
             "Versión 1.0 - Clínica Banfield.\n"
             "Autor: Jonathan De Castro"

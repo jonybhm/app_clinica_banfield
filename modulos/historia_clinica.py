@@ -160,19 +160,28 @@ class PantallaHistoriaClinica(QWidget):
 
 
 
-    def iniciar_temporizador(self, fila_idx, codpac, recepcion_val):
+    def iniciar_temporizador(self, fila_idx, codpac, horarec_val):
         import datetime
         try:
-            # recepcion_val en formato HHMM (ej: 930 → 09:30)
-            horas = int(recepcion_val) // 100
-            minutos = int(recepcion_val) % 100
-            inicio = datetime.datetime.combine(datetime.date.today(), datetime.time(horas, minutos))
-            ahora = datetime.datetime.now()
-            delta = ahora - inicio
+            if horarec_val:
+                # horarec_val es tipo datetime o string con la hora → normalizar
+                if isinstance(horarec_val, datetime.time):
+                    inicio = datetime.datetime.combine(datetime.date.today(), horarec_val)
+                elif isinstance(horarec_val, str):
+                    h, m, *_ = map(int, horarec_val.split(":"))
+                    inicio = datetime.datetime.combine(datetime.date.today(), datetime.time(h, m))
+                else:
+                    inicio = datetime.datetime.now()
 
-            segundos_totales = int(delta.total_seconds())
-            total_min, total_sec = divmod(segundos_totales, 60)
-        except:
+                ahora = datetime.datetime.now()
+                delta = ahora - inicio
+                segundos_totales = int(delta.total_seconds())
+                total_min, total_sec = divmod(segundos_totales, 60)
+            else:
+                total_min, total_sec = 0, 0
+
+        except Exception as e:
+            print("Error en iniciar_temporizador:", e)
             total_min, total_sec = 0, 0
 
         tiempo_str = f"{total_min:02}:{total_sec:02}"
@@ -183,7 +192,6 @@ class PantallaHistoriaClinica(QWidget):
         timer.start(1000)
 
         self.timers[codpac] = {"timer": timer, "tiempo": tiempo_str}
-
 
 
     def actualizar_espera(self, codpac):

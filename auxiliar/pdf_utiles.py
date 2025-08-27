@@ -12,7 +12,11 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from datetime import datetime
 import os
+import tempfile  # ✅ usar carpeta temporal del sistema
 from auxiliar.rtf_utiles import limpiar_evolucion
+from reportlab.lib.units import mm
+from reportlab.platypus import HRFlowable
+from reportlab.lib.enums import TA_CENTER
 
 
 def generar_pdf_historia(datos_paciente, historial):
@@ -24,7 +28,12 @@ def generar_pdf_historia(datos_paciente, historial):
     fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M")
     nombre_paciente = datos_paciente.get("NOMBRE", "Paciente desconocido")
 
-    archivo = f"historia_{datos_paciente['CODPAC']}.pdf"
+    # ✅ Guardar en carpeta temporal
+    archivo = os.path.join(
+        tempfile.gettempdir(),
+        f"historia_{datos_paciente['CODPAC']}.pdf"
+    )
+
     doc = SimpleDocTemplate(
         archivo,
         pagesize=A4,
@@ -122,7 +131,7 @@ def generar_pdf_historia(datos_paciente, historial):
         ]))
         elementos.append(fila_tabla)
 
-        # Texto de evolución (multi-línea, alineado izquierda)
+        # Texto de evolución
         if evolucion_limpia:
             elementos.append(Paragraph("Motivo de Consulta:", estilo_subtitulo))
             elementos.append(Paragraph(evolucion_limpia, estilo_normal))
@@ -131,5 +140,79 @@ def generar_pdf_historia(datos_paciente, historial):
     # ==========================
     # GENERAR PDF
     # ==========================
+    doc.build(elementos)
+    return os.path.abspath(archivo)
+
+
+def generar_pdf_informe(informe, nombre_profesional):
+    """
+    Genera un PDF con un informe individual de AINFOR.
+    informe: dict con PROTOCOLO, FESTUDIO, TIPEA, CMEMO, CODPAC
+    nombre_profesional: string con nombre y apellido del médico
+    """
+    fecha_estudio = informe.get("FESTUDIO")
+    if isinstance(fecha_estudio, datetime):
+        fecha_str = fecha_estudio.strftime("%d/%m/%Y")
+    else:
+        fecha_str = str(fecha_estudio)
+
+    protocolo = informe.get("PROTOCOLO", "")
+    texto_rtf = informe.get("CMEMO", "")
+    texto_limpio = limpiar_evolucion(texto_rtf)
+
+    # ✅ Guardar en carpeta temporal
+    archivo = os.path.join(
+        tempfile.gettempdir(),
+        f"informe_{protocolo}.pdf"
+    )
+
+    doc = SimpleDocTemplate(
+        archivo,
+        pagesize=A4,
+        rightMargin=20*mm,
+        leftMargin=20*mm,
+        topMargin=20*mm,
+        bottomMargin=20*mm,
+    )
+
+    estilos = getSampleStyleSheet()
+    estilo_normal = estilos["Normal"]
+    estilo_courier = ParagraphStyle(
+        "Courier",
+        parent=estilos["Normal"],
+        fontName="Courier",
+        fontSize=10,
+        leading=14,
+    )
+
+    elementos = []
+
+    encabezado = (
+        f"Fecha de Estudio: {fecha_str} &nbsp;&nbsp;&nbsp;&nbsp; "
+        f"Profesional: {nombre_profesional} &nbsp;&nbsp;&nbsp;&nbsp; "
+        f"Protocolo: {protocolo}"
+    )
+    elementos.append(Paragraph(encabezado, estilo_normal))
+    elementos.append(HRFlowable(width="100%", thickness=1, color=colors.black))
+    elementos.append(Spacer(1, 6))
+
+    estilo_centrado = ParagraphStyle(
+        "Centrado",
+        parent=estilos["Normal"],
+        alignment=TA_CENTER,
+        fontName="Helvetica",
+        fontSize=10
+    )
+
+    datos_inst = """Instituto Cardiológico Banfield<br/>
+    Maipú 660 Banfield<br/>
+    Tel: 4202-5925 y 4202-5927"""
+
+    elementos.append(Paragraph(datos_inst, estilo_centrado))
+    elementos.append(Spacer(1, 12))
+
+    if texto_limpio:
+        elementos.append(Paragraph(texto_limpio.replace("\n", "<br/>"), estilo_courier))
+
     doc.build(elementos)
     return os.path.abspath(archivo)

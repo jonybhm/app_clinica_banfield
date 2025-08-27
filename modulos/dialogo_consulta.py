@@ -18,12 +18,13 @@ from acceso_db.repositorio_historia import obtener_lista_diagnosticos, obtener_l
 from auxiliar.widgets_personalizados import ComboBoxBuscador
 from acceso_db.conexion import obtener_conexion
 import os
-from auxiliar.pdf_utiles import generar_pdf_historia
+from auxiliar.pdf_utiles import generar_pdf_historia, generar_pdf_informe
+from modulos.dialogo_informes import DialogoInformes
 
 class DialogoConsulta(QDialog):
     def __init__(self, datos_paciente, historial, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Nueva Consulta")
+        self.setWindowTitle("Nueva Consulta / Ver Historia Clínica")
         self.resize(600, 500)
 
         self.datos_paciente = datos_paciente  # diccionario
@@ -50,12 +51,16 @@ class DialogoConsulta(QDialog):
         boton_salir = QPushButton("Salir")
         boton_salir.clicked.connect(self.close)
 
-        boton_imprimir = QPushButton("Imprimir")
+        boton_imprimir = QPushButton("Imprimir Historial Clínico")
         boton_imprimir.clicked.connect(self.abrir_vista_previa)
 
+        boton_informes = QPushButton("Ver Informes")
+        boton_informes.clicked.connect(self.abrir_informes)
+
         botones_layout.addWidget(boton_guardar)
-        botones_layout.addWidget(boton_salir)
         botones_layout.addWidget(boton_imprimir)
+        botones_layout.addWidget(boton_informes)
+        botones_layout.addWidget(boton_salir)
 
         layout.addLayout(botones_layout)
 
@@ -250,3 +255,8 @@ class DialogoConsulta(QDialog):
 
         # Opción A: abrir con visor externo
         os.startfile(archivo)  # en Windows abre el visor predeterminado
+
+    def abrir_informes(self):
+        codpac = self.datos_paciente["CODPAC"]
+        dlg = DialogoInformes(codpac, self.datos_paciente["PROFESIONAL"], self)
+        dlg.exec_()
