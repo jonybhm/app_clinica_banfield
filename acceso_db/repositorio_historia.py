@@ -16,7 +16,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
 
     query = """
         SELECT 
-            t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR, t.RECEPCION,
+            t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR, t.RECEPCION, t.ATENDIDO,
             p.NOMBRE, p.FENAC, p.SEXO, p.HISTORIACLI,
             h.EVOLUCION
         FROM dbo.AMOVTURN t
@@ -32,9 +32,9 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
     params = [id_profesional, fecha, id_profesional]
 
     if estado == "PENDIENTE":
-        query += " AND (h.EVOLUCION IS NULL OR LEN(h.EVOLUCION) < 10)"
+        query += " AND t.ATENDIDO = 0"
     elif estado == "ATENDIDO":
-        query += " AND h.EVOLUCION IS NOT NULL AND LEN(h.EVOLUCION) >= 10"
+        query += " AND t.ATENDIDO = 1"
 
     query += " ORDER BY t.HORATUR, t.MINTUR"
 
@@ -44,7 +44,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
 
     datos = []
     for row in resultados:
-        codpac, horatur, mintur, horarec, fecha_tur, recepcion, nombre, fenac, sexo, hclin, evolucion = row
+        codpac, horatur, mintur, horarec, fecha_tur, recepcion, atendido, nombre, fenac, sexo, hclin, evolucion = row
 
         edad = calcular_edad(fenac)
         hora_turno = horatur * 100 + mintur if horatur is not None and mintur is not None else None
@@ -63,9 +63,11 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
             "RECEPCION": recepcion,
             "HCLIN": hclin,
             "EVOLUCION": evolucion,
+            "ATENDIDO": atendido,  # 👈 nuevo campo agregado
             "PROFESIONAL": nombre_profesional,
             "ID_PROFESIONAL": id_profesional
         })
+
 
     return datos
 
@@ -355,3 +357,16 @@ def obtener_dias_con_turnos(id_profesional):
     filas = cursor.fetchall()
     conn.close()
     return [f[0] for f in filas if f[0] is not None]
+
+def marcar_turno_atendido(codpac, fecha, id_profesional):
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+
+    query = """
+        UPDATE dbo.AMOVTURN
+        SET ATENDIDO = 1
+        WHERE CODPAC = ? AND CONVERT(date, FECHTUR) = ? AND CODIGO = ?
+    """
+    cursor.execute(query, (codpac, fecha, id_profesional))
+    conn.commit()
+    conn.close()

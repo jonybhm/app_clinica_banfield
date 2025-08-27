@@ -120,7 +120,16 @@ class MainWindow(QMainWindow):
         '''
         Esta funcion ejecuta el boton "Acerca de"
         '''
-        QMessageBox.Information(self, "Acerca de", "Sistema de gestión Historias Clínicas")
+        QMessageBox.information(
+            self,
+            "Acerca de",
+            "Sistema de gestión de Historias Clínicas\n\n"
+            "📌 Funcionalidades:\n"
+            "- Historia Clínica: buscar turnos por fecha y gestionar evoluciones.\n"
+            "- Pacientes: buscar historias clínicas por nombre o DNI.\n\n"
+            "Versión 1.0 - Clínica Banfield.\n"
+            "Autor: Jonathan De Castro"
+        )
 
     def _aplicar_tema(self, archivo):
         '''

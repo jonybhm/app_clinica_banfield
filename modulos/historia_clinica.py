@@ -12,7 +12,8 @@ from PyQt5.QtCore import QDate, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QTextCharFormat, QBrush, QColor
 from acceso_db.repositorio_historia import buscar_turnos, obtener_dias_con_turnos
 import os
-
+from acceso_db.repositorio_historia import marcar_turno_atendido    
+import datetime
 
 class PantallaHistoriaClinica(QWidget):
     def __init__(self):
@@ -30,7 +31,7 @@ class PantallaHistoriaClinica(QWidget):
         self.fecha_edit.setDate(QDate.currentDate())
         self.fecha_edit.setCalendarPopup(True)
 
-        # 🎨 Configurar calendario para resaltar días
+        # Configurar calendario para resaltar días
         self.calendar = self.fecha_edit.calendarWidget()
         self.formato_turno = QTextCharFormat()
         self.formato_turno.setBackground(QBrush(QColor("lightgreen")))
@@ -79,19 +80,11 @@ class PantallaHistoriaClinica(QWidget):
         self.timers = {}
 
         
-
     def buscar_turnos_ui(self):
-        # 🔧 Detener timers anteriores
-        for t in self.timers.values():
-            t.stop()
-        self.timers = {}
-
         fecha = self.fecha_edit.date().toString("yyyy-MM-dd")
         estado = self.estado_combo.currentText()
-
         turnos = buscar_turnos(fecha, estado, self.id_profesional, self.nombre_profesional)
 
-        # Mostrar imagen si no hay turnos
         if not turnos:
             self.stack_layout.setCurrentWidget(self.label_no_turnos)
             return
@@ -100,66 +93,124 @@ class PantallaHistoriaClinica(QWidget):
 
         self.tabla.clear()
         self.tabla.setRowCount(len(turnos))
-        self.tabla.setColumnCount(7)
+        self.tabla.setColumnCount(8)
         self.tabla.setHorizontalHeaderLabels([
-            "Paciente", "Edad", "Sexo", "Recepción", "Espera", "H. Turno", "Profesional"
+            "Paciente", "Edad", "Sexo", "Recepción", "Espera", "H. Turno", "Profesional", "Atendido"
         ])
 
+        fecha_hoy = QDate.currentDate().toString("yyyy-MM-dd")
+
         for fila_idx, fila in enumerate(turnos):
+            codpac = fila["CODPAC"]
             recepcion_val = fila.get("RECEPCION", 0)
+            atendido_val = fila.get("ATENDIDO", 0)
 
             valores_visibles = [
                 fila.get("NOMBRE", ""),
                 fila.get("EDAD", ""),
                 fila.get("SEXO", ""),
-                str("OK") if recepcion_val and str(recepcion_val).isdigit() else "NO",  # H. Recepción
-                "",  # Espera se rellena después si corresponde
+                "✔️" if recepcion_val and str(recepcion_val).isdigit() else "❌",
+                "",  # Espera (se rellena más abajo)
                 fila.get("HORA", ""),
-                fila.get("PROFESIONAL", ""),
+                fila.get("PROFESIONAL", "")
             ]
 
+            # Columnas normales
             for col_idx, valor in enumerate(valores_visibles):
                 item = QTableWidgetItem(str(valor))
                 if col_idx == 0:
-                    item.setData(Qt.UserRole, fila["CODPAC"])
+                    item.setData(Qt.UserRole, codpac)
                 self.tabla.setItem(fila_idx, col_idx, item)
 
-            # 🚦 Si RECEPCION > 0, arranca temporizador
-            if recepcion_val and str(recepcion_val).isdigit():
-                self.iniciar_temporizador(fila_idx)
+            # Columna Atendido como combo
+            combo = QComboBox()
+            combo.addItems(["❌ FALTA ATENDER", "✔️ ATENDIDO"])
+            combo.setCurrentIndex(1 if atendido_val == 1 else 0)
+            combo.wheelEvent = lambda event: event.ignore()  # 🔒 desactivar scroll accidental
+            combo.currentIndexChanged.connect(
+                lambda idx, f=fila_idx, cp=codpac: self.cambiar_atendido(idx, f, cp)
+            )
+            self.tabla.setCellWidget(fila_idx, 7, combo)
 
+            # --- Timer ---
+            if fecha == fecha_hoy and recepcion_val and str(recepcion_val).isdigit() and atendido_val == 0:
+                if codpac not in self.timers:
+                    # Primera vez → iniciar
+                    self.iniciar_temporizador(fila_idx, codpac, recepcion_val)
+                else:
+                    # Ya existía → recuperar valor de texto
+                    tiempo_actual = self.timers[codpac]["tiempo"]
+                    self.tabla.setItem(fila_idx, 4, QTableWidgetItem(tiempo_actual))
 
-        # 🔧 Resaltar días en el calendario
         self.resaltar_dias_con_turnos()
 
-    def iniciar_temporizador(self, fila_idx):
-        # Inicia en 00:00
-        self.tabla.setItem(fila_idx, 4, QTableWidgetItem("00:00"))  # columna ESPERA
-        self.timers[fila_idx] = QTimer(self)
-        self.timers[fila_idx].timeout.connect(lambda f=fila_idx: self.actualizar_espera(f))
-        self.timers[fila_idx].start(1000)
+    
+
+    def cambiar_atendido(self, idx, fila_idx, codpac):
+        if idx == 1:  # ✔️
+            fecha_turno = self.fecha_edit.date().toString("yyyy-MM-dd")
+            marcar_turno_atendido(codpac, fecha_turno, self.id_profesional)
+
+            # detener timer
+            if codpac in self.timers:
+                self.timers[codpac]["timer"].stop()
+                del self.timers[codpac]
+
+            self.tabla.setItem(fila_idx, 7, QTableWidgetItem("✔️ ATENDIDO"))
 
 
-    def actualizar_espera(self, fila):
-        if not self or not self.tabla:
-            return
-        if fila >= self.tabla.rowCount():
-            return
 
-        item = self.tabla.item(fila, 4)  # columna ESPERA
-        if not item:
-            return
-
-        valor = item.text()
+    def iniciar_temporizador(self, fila_idx, codpac, recepcion_val):
+        import datetime
         try:
-            minutos, segundos = map(int, valor.split(":"))
+            # recepcion_val en formato HHMM (ej: 930 → 09:30)
+            horas = int(recepcion_val) // 100
+            minutos = int(recepcion_val) % 100
+            inicio = datetime.datetime.combine(datetime.date.today(), datetime.time(horas, minutos))
+            ahora = datetime.datetime.now()
+            delta = ahora - inicio
+
+            segundos_totales = int(delta.total_seconds())
+            total_min, total_sec = divmod(segundos_totales, 60)
+        except:
+            total_min, total_sec = 0, 0
+
+        tiempo_str = f"{total_min:02}:{total_sec:02}"
+        self.tabla.setItem(fila_idx, 4, QTableWidgetItem(tiempo_str))
+
+        timer = QTimer(self)
+        timer.timeout.connect(lambda cp=codpac: self.actualizar_espera(cp))
+        timer.start(1000)
+
+        self.timers[codpac] = {"timer": timer, "tiempo": tiempo_str}
+
+
+
+    def actualizar_espera(self, codpac):
+        if codpac not in self.timers:
+            return
+        tiempo_str = self.timers[codpac]["tiempo"]
+
+        try:
+            minutos, segundos = map(int, tiempo_str.split(":"))
         except:
             minutos, segundos = 0, 0
         segundos += 1
         if segundos >= 60:
             minutos += 1
             segundos = 0
-        item.setText(f"{minutos:02}:{segundos:02}")
+        nuevo = f"{minutos:02}:{segundos:02}"
+
+        # actualizar memoria
+        self.timers[codpac]["tiempo"] = nuevo
+
+        # actualizar celda visible (si sigue en pantalla)
+        filas = self.tabla.rowCount()
+        for f in range(filas):
+            item_pac = self.tabla.item(f, 0)
+            if item_pac and item_pac.data(Qt.UserRole) == codpac:
+                self.tabla.setItem(f, 4, QTableWidgetItem(nuevo))
+                break
 
     def resaltar_dias_con_turnos(self):
         """Marca en verde los días donde el profesional tiene turnos"""
@@ -170,6 +221,8 @@ class PantallaHistoriaClinica(QWidget):
         for d in dias:
             qd = QDate(d.year, d.month, d.day)
             self.calendar.setDateTextFormat(qd, self.formato_turno)
+
+    from acceso_db.repositorio_historia import marcar_turno_atendido
 
     def abrir_dialogo_consulta(self):
         from modulos.dialogo_consulta import DialogoConsulta
@@ -198,7 +251,20 @@ class PantallaHistoriaClinica(QWidget):
 
         dlg = DialogoConsulta(datos_paciente, historial, self)
         if dlg.exec_() == QDialog.Accepted:
+            # 1. Actualizar en la BD
+            fecha_turno = self.fecha_edit.date().toString("yyyy-MM-dd")
+            marcar_turno_atendido(codpac, fecha_turno, self.id_profesional)
+
+            # 2. Refrescar columna ATENDIDO en la tabla
+            self.tabla.setItem(fila, 7, QTableWidgetItem("✔️"))
+
+            # 3. Detener temporizador de espera para ese paciente
+            if fila in self.timers:
+                self.timers[fila].stop()
+                del self.timers[fila]
+
             QMessageBox.information(self, "Guardado", "Evolución registrada con éxito.")
+
 
     def closeEvent(self, event):
         # 🔧 Apagar timers al cerrar

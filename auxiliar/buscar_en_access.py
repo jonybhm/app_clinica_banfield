@@ -38,4 +38,4 @@ def buscar_valor_en_bd(valor_busqueda):
     
 
 # USO:
-buscar_valor_en_bd("13/08/2025")
+buscar_valor_en_bd("3767081")
