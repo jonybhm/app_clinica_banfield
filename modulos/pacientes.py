@@ -15,7 +15,8 @@ from acceso_db.repositorio_historia import obtener_datos_paciente_y_historial, b
 from auxiliar.rtf_utiles import limpiar_evolucion
 from modulos.dialogo_consulta import DialogoConsulta
 from auxiliar.widgets_personalizados import ComboBoxBuscador
-
+from auxiliar.widgets.spinner import SpinnerDialog
+from PyQt5.QtWidgets import QApplication
 
 class PantallaPacientes(QWidget):
     def __init__(self, id_profesional, nombre_profesional):
@@ -62,6 +63,11 @@ class PantallaPacientes(QWidget):
 
 
     def buscar_paciente_ui(self):
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Cargando...")
+        spinner.show()
+        QApplication.processEvents()
+
         """ Ejecuta búsqueda por nombre o DNI """
         nombre = self.combo_nombre.currentText().strip()
         dni = self.input_dni.text().strip()
@@ -105,6 +111,11 @@ class PantallaPacientes(QWidget):
 
 
     def abrir_dialogo_consulta(self):
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Cargando...")
+        spinner.show()
+        QApplication.processEvents()
+        
         """ Abre el historial completo del paciente """
         fila = self.tabla.currentRow()
         if fila < 0:

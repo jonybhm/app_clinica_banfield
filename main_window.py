@@ -18,6 +18,8 @@ from acceso_db.permisos_repo import tiene_permiso_admin
 from modulos.admin_usuarios import AdminUsuarios
 from modulos.pacientes import PantallaPacientes  
 from PyQt5.QtCore import pyqtSignal
+from auxiliar.widgets.spinner import SpinnerDialog
+from PyQt5.QtWidgets import QApplication
 
 class MainWindow(QMainWindow):
     logout_signal = pyqtSignal()
@@ -84,6 +86,11 @@ class MainWindow(QMainWindow):
 
 
     def _crear_menu(self):
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Cargando...")
+        spinner.show()
+        QApplication.processEvents()
+        
         menubar = self.menuBar()
         archivo_menu = menubar.addMenu("Archivo")
 
@@ -127,6 +134,11 @@ class MainWindow(QMainWindow):
         admin_menu.addAction(admin_action)
 
     def _abrir_admin(self):
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Cargando...")
+        spinner.show()
+        QApplication.processEvents()
+
         codmed = self.datos_usuario.get("CODMED") or 0
         self.admin_window = AdminUsuarios(codmed, self)
         self.admin_window.show()
@@ -157,6 +169,11 @@ class MainWindow(QMainWindow):
         None.
 
         '''
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Cargando...")
+        spinner.show()
+        QApplication.processEvents()
+
         try:
             with open(archivo, "r") as f:
                 estilo = f.read()
@@ -190,10 +207,20 @@ class MainWindow(QMainWindow):
 
      # -------- Abrir ventanas nuevas ----------
     def abrir_historia_clinica(self):
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Cargando...")
+        spinner.show()
+        QApplication.processEvents()
+
         self.historia_window = HistoriaClinicaWindow(self.datos_usuario)
         self.historia_window.show()
 
     def abrir_pacientes(self):
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Cargando...")
+        spinner.show()
+        QApplication.processEvents()
+
         self.pacientes_window = PacientesWindow(self.datos_usuario)
         self.pacientes_window.show()
 

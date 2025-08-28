@@ -4,15 +4,18 @@ Created on Thu May 15 22:18:21 2025
 
 @author: Jonathan
 """
-
-import sys
-from PyQt5.QtWidgets import QApplication
+# main.py
+import sys, time
+from PyQt5.QtWidgets import QApplication, QSplashScreen
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt, QTimer
 from main_window import MainWindow
 from modulos.login import PantallaLogin
 
 
 class ControladorApp:
-    def __init__(self):
+    def __init__(self, app):
+        self.app = app
         self.login_window = None
         self.main_window = None
 
@@ -28,7 +31,6 @@ class ControladorApp:
 
     def mostrar_main(self, datos_usuario):
         self.main_window = MainWindow(datos_usuario)
-        # 👉 agregamos una señal personalizada en MainWindow para volver al login
         self.main_window.logout_signal.connect(self._cerrar_sesion)
         self.main_window.show()
 
@@ -39,6 +41,18 @@ class ControladorApp:
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    controlador = ControladorApp()
+
+    # --- Splash screen ---
+    splash = QSplashScreen(QPixmap("assets/spinner/logo-carga.png"))
+    splash.showMessage("Cargando...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+    splash.show()
+    app.processEvents()
+
+    # # Simulamos carga de datos (ej: conexión DB)
+    # time.sleep(2)
+
+    controlador = ControladorApp(app)
     controlador.mostrar_login()
+    splash.finish(controlador.login_window)
+
     sys.exit(app.exec_())

@@ -20,6 +20,8 @@ from acceso_db.conexion import obtener_conexion
 import os
 from auxiliar.pdf_utiles import generar_pdf_historia, generar_pdf_informe
 from modulos.dialogo_informes import DialogoInformes
+from auxiliar.widgets.spinner import SpinnerDialog
+from PyQt5.QtWidgets import QApplication
 
 class DialogoConsulta(QDialog):
     def __init__(self, datos_paciente, historial, parent=None):
@@ -201,6 +203,12 @@ class DialogoConsulta(QDialog):
             self.guardar_evolucion()
 
     def guardar_evolucion(self):
+
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Guardando...")
+        spinner.show()
+        QApplication.processEvents()
+        
         texto_diag = self.cmb_diagnostico.currentText()
         codigo_diag = None
         if "(" in texto_diag and texto_diag.endswith(")"):
@@ -250,6 +258,11 @@ class DialogoConsulta(QDialog):
         self.accept()
     
     def abrir_vista_previa(self):
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Abriendo vista previa...")
+        spinner.show()
+        QApplication.processEvents()
+
         # Generar PDF temporal
         archivo = generar_pdf_historia(self.datos_paciente, self.historial)
 
@@ -257,6 +270,11 @@ class DialogoConsulta(QDialog):
         os.startfile(archivo)  # en Windows abre el visor predeterminado
 
     def abrir_informes(self):
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Abriendo informes...")
+        spinner.show()
+        
+        QApplication.processEvents()
         codpac = self.datos_paciente["CODPAC"]
         dlg = DialogoInformes(codpac, self.datos_paciente["PROFESIONAL"], self)
         dlg.exec_()

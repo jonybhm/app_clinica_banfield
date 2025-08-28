@@ -4,6 +4,7 @@ Created on Thu May 15 22:18:21 2025
 
 @author: Jonathan
 """
+# modulos/historia_clinica.py
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
     QDateEdit, QComboBox, QTableWidget, QTableWidgetItem, QMessageBox, QStackedLayout
@@ -14,6 +15,8 @@ from acceso_db.repositorio_historia import buscar_turnos, obtener_dias_con_turno
 import os
 from acceso_db.repositorio_historia import marcar_turno_atendido    
 import datetime
+from auxiliar.widgets.spinner import SpinnerDialog
+from PyQt5.QtWidgets import QApplication
 
 class PantallaHistoriaClinica(QWidget):
     def __init__(self):
@@ -81,6 +84,12 @@ class PantallaHistoriaClinica(QWidget):
 
         
     def buscar_turnos_ui(self):
+
+        # --- Mostrar spinner ---
+        spinner = SpinnerDialog("Buscando turnos...")
+        spinner.show()
+        QApplication.processEvents()
+        
         fecha = self.fecha_edit.date().toString("yyyy-MM-dd")
         estado = self.estado_combo.currentText()
         turnos = buscar_turnos(fecha, estado, self.id_profesional, self.nombre_profesional)
