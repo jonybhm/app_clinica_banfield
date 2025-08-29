@@ -88,8 +88,11 @@
 ---
 
 ### Ejecutable
-Si no deseas instalar dependencias manualmente, podés descargar el **instalador oficial** aquí:  
-[Descargar Instalador](https://github.com/jonybhm/app_clinica_banfield/tree/main/releases/latest/download)
+Si no deseás instalar dependencias manualmente, podés descargar el **instalador oficial** aquí:  
+[Descargar Instalador ICB](https://github.com/jonybhm/app_clinica_banfield/tree/main/releases/latest/download)
+
+Descargar el instalador para **Microsoft ODBC Driver 18 for SQL Server (x64)** aquí:  
+[Descargar Instalador ODBC](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver17)
 
 ---
 
@@ -105,6 +108,6 @@ Consulta [LICENSE](LICENSE) para más información.
 ---
 
 ## Reconocimientos
-- Clínica Banfield por el caso de uso real  
+- ["Instituto Cardiológico Banfield"](https://www.institutocardiologicobanfield.com/) por el caso de uso real  
 - Comunidad de Python y PyInstaller  
 - Inno Setup por el empaquetado del instalador
