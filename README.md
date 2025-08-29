@@ -45,16 +45,16 @@
 <div align="center">
 <table>
 <tr>
-  <td><b>Login</b><br><img src="assets/screenshots/menu_ppal.png" width="300"></td>
-  <td><b>Home</b><br><img src="assets/screenshots/turnos.png" width="300"></td>
+  <td><b>Menu Principal</b><br><img src="assets/screenshots/menu_ppal.png" width="300"></td>
+  <td><b>Turnos</b><br><img src="assets/screenshots/turnos.png" width="300"></td>
 </tr>
 <tr>
-  <td><b>Turnos</b><br><img src="assets/screenshots/pacientes.png" width="300"></td>
-  <td><b>Historias Clínicas</b><br><img src="assets/screenshots/historial.png" width="300"></td>
+  <td><b>Pacientes</b><br><img src="assets/screenshots/pacientes.png" width="300"></td>
+  <td><b>Historial</b><br><img src="assets/screenshots/historial.png" width="300"></td>
 </tr>
 <tr>
-  <td><b>Informes</b><br><img src="assets/screenshots/evolucion.png" width="300"></td>
-  <td><b>Pacientes</b><br><img src="assets/screenshots/permisos.png" width="300"></td>
+  <td><b>Evolución</b><br><img src="assets/screenshots/evolucion.png" width="300"></td>
+  <td><b>Permisos</b><br><img src="assets/screenshots/permisos.png" width="300"></td>
 </tr>
 </table>
 </div>
