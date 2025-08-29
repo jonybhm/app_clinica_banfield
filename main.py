@@ -8,7 +8,7 @@ Created on Thu May 15 22:18:21 2025
 import sys, time
 from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt
 from main_window import MainWindow
 from modulos.login import PantallaLogin
 
@@ -42,14 +42,13 @@ class ControladorApp:
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # --- Splash screen ---
+    # Splash screen
     splash = QSplashScreen(QPixmap("assets/spinner/logo-carga.png"))
     splash.showMessage("Cargando...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
     splash.show()
     app.processEvents()
 
-    # # Simulamos carga de datos (ej: conexión DB)
-    # time.sleep(2)
+    time.sleep(2)
 
     controlador = ControladorApp(app)
     controlador.mostrar_login()

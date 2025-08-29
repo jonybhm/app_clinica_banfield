@@ -45,7 +45,7 @@ class DialogoConsulta(QDialog):
         layout = QVBoxLayout()
         layout.addWidget(tabs)
 
-        # Botón inferior
+        # Botones inferiores
         botones_layout = QHBoxLayout()
         boton_guardar = QPushButton("Grabar")
         boton_guardar.clicked.connect(self.confirmar_guardado)
@@ -111,13 +111,10 @@ class DialogoConsulta(QDialog):
             historial_layout.addWidget(texto)
 
                 
-   
-
-        # self.tab_consulta.setLayout(layout)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(historial_widget)
-        scroll.setFixedHeight(300)  # altura máxima del scroll
+        scroll.setFixedHeight(300)  
 
         layout.addWidget(scroll)
 
@@ -204,7 +201,7 @@ class DialogoConsulta(QDialog):
 
     def guardar_evolucion(self):
 
-        # --- Mostrar spinner ---
+        # Mostrar spinner
         spinner = SpinnerDialog("Guardando...")
         spinner.show()
         QApplication.processEvents()
@@ -258,19 +255,17 @@ class DialogoConsulta(QDialog):
         self.accept()
     
     def abrir_vista_previa(self):
-        # --- Mostrar spinner ---
+        # Mostrar spinner
         spinner = SpinnerDialog("Abriendo vista previa...")
         spinner.show()
         QApplication.processEvents()
 
         # Generar PDF temporal
-        archivo = generar_pdf_historia(self.datos_paciente, self.historial)
-
-        # Opción A: abrir con visor externo
-        os.startfile(archivo)  # en Windows abre el visor predeterminado
+        archivo = generar_pdf_historia(self.datos_paciente, self.historial)       
+        os.startfile(archivo)  
 
     def abrir_informes(self):
-        # --- Mostrar spinner ---
+        # Mostrar spinner
         spinner = SpinnerDialog("Abriendo informes...")
         spinner.show()
         

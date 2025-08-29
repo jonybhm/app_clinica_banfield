@@ -12,7 +12,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from datetime import datetime
 import os
-import tempfile  # ✅ usar carpeta temporal del sistema
+import tempfile
 from auxiliar.rtf_utiles import limpiar_evolucion
 from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable
@@ -28,7 +28,7 @@ def generar_pdf_historia(datos_paciente, historial):
     fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M")
     nombre_paciente = datos_paciente.get("NOMBRE", "Paciente desconocido")
 
-    # ✅ Guardar en carpeta temporal
+    # Guardar en carpeta temporal
     archivo = os.path.join(
         tempfile.gettempdir(),
         f"historia_{datos_paciente['CODPAC']}.pdf"
@@ -62,9 +62,7 @@ def generar_pdf_historia(datos_paciente, historial):
 
     elementos = []
 
-    # ==========================
     # ENCABEZADO
-    # ==========================
     encabezado_tabla = Table(
         [[
             Paragraph("I.C.B.", estilo_titulo),
@@ -87,9 +85,7 @@ def generar_pdf_historia(datos_paciente, historial):
     elementos.append(Paragraph("=" * 90, estilo_normal))
     elementos.append(Spacer(1, 12))
 
-    # ==========================
     # HISTORIAL
-    # ==========================
     tabla_header = Table(
         [[
             "Fecha",
@@ -137,9 +133,8 @@ def generar_pdf_historia(datos_paciente, historial):
             elementos.append(Paragraph(evolucion_limpia, estilo_normal))
             elementos.append(Spacer(1, 6))
 
-    # ==========================
     # GENERAR PDF
-    # ==========================
+    
     doc.build(elementos)
     return os.path.abspath(archivo)
 
@@ -160,7 +155,7 @@ def generar_pdf_informe(informe, nombre_profesional):
     texto_rtf = informe.get("CMEMO", "")
     texto_limpio = limpiar_evolucion(texto_rtf)
 
-    # ✅ Guardar en carpeta temporal
+    # Guardar en carpeta temporal
     archivo = os.path.join(
         tempfile.gettempdir(),
         f"informe_{protocolo}.pdf"

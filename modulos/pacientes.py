@@ -33,7 +33,7 @@ class PantallaPacientes(QWidget):
         # Layout buscadores
         buscador_layout = QHBoxLayout()
 
-        # Nombre con ComboBoxBuscador
+        # Nombre
         self.combo_nombre = ComboBoxBuscador()
         self.combo_nombre.setPlaceholderText("Buscar por Nombre")
         todos = obtener_pacientes()
@@ -41,7 +41,7 @@ class PantallaPacientes(QWidget):
         self.combo_nombre.setItems(nombres_lista)
         buscador_layout.addWidget(self.combo_nombre)
 
-        # DNI con QLineEdit
+        # DNI
         self.input_dni = QLineEdit()
         self.input_dni.setPlaceholderText("Buscar por DNI")
         buscador_layout.addWidget(self.input_dni)
@@ -52,18 +52,18 @@ class PantallaPacientes(QWidget):
 
         self.layout.addLayout(buscador_layout)
 
-        # Tabla de resultados
+        # Resultados
         self.tabla = QTableWidget()
         self.layout.addWidget(self.tabla)
 
-        # Botón para abrir historial
+        # Abrir historial
         self.btn_historial = QPushButton("Ver Historial / Imprimir")
         self.btn_historial.clicked.connect(self.abrir_dialogo_consulta)
         self.layout.addWidget(self.btn_historial)
 
 
     def buscar_paciente_ui(self):
-        # --- Mostrar spinner ---
+        # Mostrar spinner
         spinner = SpinnerDialog("Cargando...")
         spinner.show()
         QApplication.processEvents()
@@ -82,11 +82,11 @@ class PantallaPacientes(QWidget):
             QMessageBox.information(self, "Sin resultados", "No se encontraron pacientes con esos datos.")
             return
 
-        # Poblar el combo con todos los nombres (para autocompletar en siguientes búsquedas)
+        # Llenar el combo con todos los nombres
         nombres_lista = [r["NOMBRE"] for r in resultados if r.get("NOMBRE")]
         self.combo_nombre.setItems(nombres_lista)
 
-        # Poblar tabla
+        # Llenar tabla
         self.tabla.clear()
         self.tabla.setRowCount(len(resultados))
         self.tabla.setColumnCount(3)
@@ -100,18 +100,18 @@ class PantallaPacientes(QWidget):
 
             valores = [
                 fila.get("NOMBRE", ""),
-                fila.get("DOCUMENTO", ""),   # ← acá estaba "DOCUMENTO"
+                fila.get("DOCUMENTO", ""),
                 evolucion_limpia[:80] + "..." if evolucion_limpia else ""
             ]
             for col_idx, valor in enumerate(valores):
                 item = QTableWidgetItem(str(valor))
                 if col_idx == 0:
-                    item.setData(Qt.UserRole, fila["CODPAC"])  # guardamos CODPAC oculto
+                    item.setData(Qt.UserRole, fila["CODPAC"]) 
                 self.tabla.setItem(fila_idx, col_idx, item)
 
 
     def abrir_dialogo_consulta(self):
-        # --- Mostrar spinner ---
+        # Mostrar spinner
         spinner = SpinnerDialog("Cargando...")
         spinner.show()
         QApplication.processEvents()

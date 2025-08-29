@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
     Clase que representa la ventana principal
     Hereda propiedades de PyQT (Main Window)    
     '''
-    def __init__(self, datos_usuario):  # ← RECIBE los datos de usuario
+    def __init__(self, datos_usuario):  
         super().__init__()
         self.datos_usuario = datos_usuario
         
@@ -86,7 +86,7 @@ class MainWindow(QMainWindow):
 
 
     def _crear_menu(self):
-        # --- Mostrar spinner ---
+        # Mostrar spinner 
         spinner = SpinnerDialog("Cargando...")
         spinner.show()
         QApplication.processEvents()
@@ -102,12 +102,12 @@ class MainWindow(QMainWindow):
         tema_claro_action.triggered.connect(self._aplicar_tema_claro)
         temas_menu.addAction(tema_claro_action)
 
-        # --- Nueva opción: Cambiar de usuario ---
+        # Cambiar de usuario 
         cambiar_usuario_action = QAction("Cambiar de usuario", self)
         cambiar_usuario_action.triggered.connect(self._cambiar_usuario)
         archivo_menu.addAction(cambiar_usuario_action)
 
-        # --- Opción salir ---
+        # Opción salir
         salir_action = QAction("Salir", self)
         salir_action.triggered.connect(self.close)
         archivo_menu.addAction(salir_action)
@@ -134,7 +134,7 @@ class MainWindow(QMainWindow):
         admin_menu.addAction(admin_action)
 
     def _abrir_admin(self):
-        # --- Mostrar spinner ---
+        # Mostrar spinner
         spinner = SpinnerDialog("Cargando...")
         spinner.show()
         QApplication.processEvents()
@@ -169,7 +169,7 @@ class MainWindow(QMainWindow):
         None.
 
         '''
-        # --- Mostrar spinner ---
+        # Mostrar spinner 
         spinner = SpinnerDialog("Cargando...")
         spinner.show()
         QApplication.processEvents()
@@ -177,7 +177,7 @@ class MainWindow(QMainWindow):
         try:
             with open(archivo, "r") as f:
                 estilo = f.read()
-                QApplication.instance().setStyleSheet(estilo)  # ✅ aplica globalmente
+                QApplication.instance().setStyleSheet(estilo)  # aplica el estilo globalmente
         except FileNotFoundError:
             print(f"Archivo de estilos {archivo} no encontrado")
             
@@ -198,16 +198,9 @@ class MainWindow(QMainWindow):
         QApplication.setStyle("Fusion")
         self._aplicar_tema("assets/styles/estilo_claro.qss")
         
-    def _agregar_admin_menu(self):
-        admin_menu = self.menuBar().addMenu("Administración")
-        admin_action = QAction("Usuarios", self)
-        admin_action.triggered.connect(self._abrir_admin)
-        admin_menu.addAction(admin_action)
-
-
-     # -------- Abrir ventanas nuevas ----------
+   
     def abrir_historia_clinica(self):
-        # --- Mostrar spinner ---
+        # Mostrar spinner 
         spinner = SpinnerDialog("Cargando...")
         spinner.show()
         QApplication.processEvents()
@@ -216,7 +209,7 @@ class MainWindow(QMainWindow):
         self.historia_window.show()
 
     def abrir_pacientes(self):
-        # --- Mostrar spinner ---
+        # Mostrar spinner 
         spinner = SpinnerDialog("Cargando...")
         spinner.show()
         QApplication.processEvents()
@@ -226,6 +219,7 @@ class MainWindow(QMainWindow):
 
 
 # Ventana secundaria para Historia Clínica
+
 class HistoriaClinicaWindow(QMainWindow):
     def __init__(self, datos_usuario):
         super().__init__()

@@ -48,7 +48,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
 
         edad = calcular_edad(fenac)
         hora_turno = horatur * 100 + mintur if horatur is not None and mintur is not None else None
-        espera = "-"  # el temporizador en la UI lo calcula en vivo
+        espera = "-" 
         sexo_txt = "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-"
 
         datos.append({
@@ -63,7 +63,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
             "RECEPCION": recepcion,
             "HCLIN": hclin,
             "EVOLUCION": evolucion,
-            "ATENDIDO": atendido,  # 👈 nuevo campo agregado
+            "ATENDIDO": atendido,
             "PROFESIONAL": nombre_profesional,
             "ID_PROFESIONAL": id_profesional
         })
@@ -81,7 +81,7 @@ def calcular_edad(fecha_nacimiento):
     return hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
 
 def format_hora(valor):
-    if isinstance(valor, int):  # HHMM
+    if isinstance(valor, int):
         h = valor // 100
         m = valor % 100
         return f"{h:02}:{m:02}"

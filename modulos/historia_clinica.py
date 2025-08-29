@@ -56,7 +56,6 @@ class PantallaHistoriaClinica(QWidget):
 
         self.layout.addLayout(filtro_layout)
 
-        # --- 🔧 Sección central: tabla + imagen en un QStackedLayout ---
         self.stack_layout = QStackedLayout()
         self.layout.addLayout(self.stack_layout)
 
@@ -74,7 +73,7 @@ class PantallaHistoriaClinica(QWidget):
             self.label_no_turnos.setText("No hay turnos en esta fecha.")
         self.stack_layout.addWidget(self.label_no_turnos)
 
-        # Botón Nueva Consulta
+        # Nueva Consulta
         btn_nueva = QPushButton("Nueva Consulta")
         btn_nueva.clicked.connect(self.abrir_dialogo_consulta)
         self.layout.addWidget(btn_nueva)
@@ -85,7 +84,7 @@ class PantallaHistoriaClinica(QWidget):
         
     def buscar_turnos_ui(self):
 
-        # --- Mostrar spinner ---
+        # Mostrar spinner
         spinner = SpinnerDialog("Buscando turnos...")
         spinner.show()
         QApplication.processEvents()
@@ -141,13 +140,11 @@ class PantallaHistoriaClinica(QWidget):
             )
             self.tabla.setCellWidget(fila_idx, 7, combo)
 
-            # --- Timer ---
+            # Timer
             if fecha == fecha_hoy and recepcion_val and str(recepcion_val).isdigit() and atendido_val == 0:
                 if codpac not in self.timers:
-                    # Primera vez → iniciar
                     self.iniciar_temporizador(fila_idx, codpac, recepcion_val)
-                else:
-                    # Ya existía → recuperar valor de texto
+                else:                    
                     tiempo_actual = self.timers[codpac]["tiempo"]
                     self.tabla.setItem(fila_idx, 4, QTableWidgetItem(tiempo_actual))
 
@@ -156,11 +153,10 @@ class PantallaHistoriaClinica(QWidget):
     
 
     def cambiar_atendido(self, idx, fila_idx, codpac):
-        if idx == 1:  # ✔️
+        if idx == 1:  
             fecha_turno = self.fecha_edit.date().toString("yyyy-MM-dd")
             marcar_turno_atendido(codpac, fecha_turno, self.id_profesional)
-
-            # detener timer
+            
             if codpac in self.timers:
                 self.timers[codpac]["timer"].stop()
                 del self.timers[codpac]
@@ -172,8 +168,7 @@ class PantallaHistoriaClinica(QWidget):
     def iniciar_temporizador(self, fila_idx, codpac, horarec_val):
         import datetime
         try:
-            if horarec_val:
-                # horarec_val es tipo datetime o string con la hora → normalizar
+            if horarec_val:                
                 if isinstance(horarec_val, datetime.time):
                     inicio = datetime.datetime.combine(datetime.date.today(), horarec_val)
                 elif isinstance(horarec_val, str):
@@ -221,7 +216,7 @@ class PantallaHistoriaClinica(QWidget):
         # actualizar memoria
         self.timers[codpac]["tiempo"] = nuevo
 
-        # actualizar celda visible (si sigue en pantalla)
+        # actualizar celda visible
         filas = self.tabla.rowCount()
         for f in range(filas):
             item_pac = self.tabla.item(f, 0)
@@ -284,7 +279,7 @@ class PantallaHistoriaClinica(QWidget):
 
 
     def closeEvent(self, event):
-        # 🔧 Apagar timers al cerrar
+        # Apagar timers al cerrar
         for t in self.timers.values():
             t.stop()
         self.timers = {}

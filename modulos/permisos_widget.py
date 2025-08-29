@@ -48,7 +48,7 @@ class PermisosWidget(QWidget):
             self.table.setItem(i, 0, QTableWidgetItem(str(numprog)))
             self.table.setItem(i, 1, QTableWidgetItem(desc))
 
-            # Columna Acceso → calculado dinámicamente
+            # Columna Acceso
             acceso = "DENEGADO"
             checks = [alta, baja, modif, consulta, imprime, permesp]
             if all(v == 1 for v in checks):
