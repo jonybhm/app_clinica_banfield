@@ -12,6 +12,7 @@ from PyQt5.QtCore import Qt
 from main_window import MainWindow
 from modulos.login import PantallaLogin
 from auxiliar.rutas import recurso_path
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 class ControladorApp:
     def __init__(self, app):
@@ -41,17 +42,25 @@ class ControladorApp:
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    try:
+        # Splash screen
+        splash = QSplashScreen(QPixmap(recurso_path("assets/spinner/logo-carga.png")))
+        splash.showMessage("Cargando...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+        splash.show()
+        app.processEvents()
 
-    # Splash screen
-    splash = QSplashScreen(QPixmap(recurso_path("assets/spinner/logo-carga.png")))
-    splash.showMessage("Cargando...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
-    splash.show()
-    app.processEvents()
+        time.sleep(2)
 
-    time.sleep(2)
+        controlador = ControladorApp(app)
+        controlador.mostrar_login()
+        splash.finish(controlador.login_window)
 
-    controlador = ControladorApp(app)
-    controlador.mostrar_login()
-    splash.finish(controlador.login_window)
-
-    sys.exit(app.exec_())
+        sys.exit(app.exec_())
+    
+    except Exception as e:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowTitle("Error de conexión")
+        msg.setText(str(e))
+        msg.exec_()
+        sys.exit(1)
