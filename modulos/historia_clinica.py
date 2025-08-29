@@ -17,7 +17,7 @@ from acceso_db.repositorio_historia import marcar_turno_atendido
 import datetime
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
-
+from auxiliar.rutas import recurso_path
 class PantallaHistoriaClinica(QWidget):
     def __init__(self):
         super().__init__()
@@ -67,6 +67,8 @@ class PantallaHistoriaClinica(QWidget):
         self.label_no_turnos = QLabel()
         self.label_no_turnos.setAlignment(Qt.AlignCenter)
         img_path = os.path.join(os.path.dirname(__file__), "../assets/imagenes/no_turnos.png")
+        img_path = recurso_path(img_path)
+        
         if os.path.exists(img_path):
             self.label_no_turnos.setPixmap(QPixmap(img_path).scaledToWidth(300, Qt.SmoothTransformation))
         else:

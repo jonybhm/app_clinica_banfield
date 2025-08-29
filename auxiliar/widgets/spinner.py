@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel
 from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import Qt
-
+from auxiliar.rutas import recurso_path
 class SpinnerDialog(QDialog):
     def __init__(self, mensaje="Cargando..."):
         super().__init__()
@@ -18,7 +18,7 @@ class SpinnerDialog(QDialog):
         self.label_spinner.setAlignment(Qt.AlignCenter)
         self.label_spinner.setStyleSheet("background: transparent;")
 
-        self.movie = QMovie("assets/spinner/spinner.gif")
+        self.movie = QMovie(recurso_path("assets/spinner/spinner.gif"))
         if not self.movie.isValid():
             self.label_spinner.setText("⏳") 
         else:

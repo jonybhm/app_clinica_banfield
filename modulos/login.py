@@ -9,6 +9,7 @@ Created on Wed May 21 21:19:31 2025
 from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox, QApplication
 from acceso_db.repositorio_usuario import login_usuario, obtener_lista_usuarios
 from auxiliar.widgets_personalizados import ComboBoxBuscador
+from auxiliar.rutas import recurso_path
 
 class PantallaLogin(QDialog):
     def __init__(self):
@@ -50,7 +51,7 @@ class PantallaLogin(QDialog):
 
     def _aplicar_tema_oscuro(self):
         try:
-            with open("assets/styles/estilo_oscuro.qss", "r") as f:
+            with open(recurso_path("assets/styles/estilo_oscuro.qss"), "r") as f:
                 estilo = f.read()
                 self.setStyleSheet(estilo)
         except FileNotFoundError:

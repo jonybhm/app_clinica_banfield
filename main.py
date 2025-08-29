@@ -11,7 +11,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from main_window import MainWindow
 from modulos.login import PantallaLogin
-
+from auxiliar.rutas import recurso_path
 
 class ControladorApp:
     def __init__(self, app):
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     # Splash screen
-    splash = QSplashScreen(QPixmap("assets/spinner/logo-carga.png"))
+    splash = QSplashScreen(QPixmap(recurso_path("assets/spinner/logo-carga.png")))
     splash.showMessage("Cargando...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
     splash.show()
     app.processEvents()

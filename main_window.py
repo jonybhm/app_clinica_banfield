@@ -20,6 +20,7 @@ from modulos.pacientes import PantallaPacientes
 from PyQt5.QtCore import pyqtSignal
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
+from auxiliar.rutas import recurso_path
 
 class MainWindow(QMainWindow):
     logout_signal = pyqtSignal()
@@ -38,19 +39,19 @@ class MainWindow(QMainWindow):
 
         # Crear logo
         logo = QLabel()
-        pixmap = QPixmap("assets/logo/logo.png").scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        pixmap = QPixmap(recurso_path("assets/logo/logo.png")).scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
 
         # Botones principales con imágenes
         btn_historia = QPushButton("Turnos y Agendas")
-        btn_historia.setIcon(QIcon("assets/icons/historia.png"))
+        btn_historia.setIcon(QIcon(recurso_path("assets/icons/historia.png")))
         btn_historia.setIconSize(pixmap.size())
         btn_historia.setFixedSize(250, 120)
         btn_historia.clicked.connect(self.abrir_historia_clinica)
 
         btn_pacientes = QPushButton("Pacientes")
-        btn_pacientes.setIcon(QIcon("assets/icons/pacientes.png"))
+        btn_pacientes.setIcon(QIcon(recurso_path("assets/icons/pacientes.png")))
         btn_pacientes.setIconSize(pixmap.size())
         btn_pacientes.setFixedSize(250, 120)
         btn_pacientes.clicked.connect(self.abrir_pacientes)
@@ -82,7 +83,7 @@ class MainWindow(QMainWindow):
 
         # Aplicar tema oscuro
         QApplication.setStyle("Fusion")
-        self._aplicar_tema("assets/styles/estilo_oscuro.qss")
+        self._aplicar_tema(recurso_path("assets/styles/estilo_oscuro.qss"))
 
 
     def _crear_menu(self):
@@ -192,12 +193,12 @@ class MainWindow(QMainWindow):
     
     def _aplicar_tema_oscuro(self):
         QApplication.setStyle("Fusion")
-        self._aplicar_tema("assets/styles/estilo_oscuro.qss")
+        self._aplicar_tema(recurso_path("assets/styles/estilo_oscuro.qss"))
 
     def _aplicar_tema_claro(self):
         QApplication.setStyle("Fusion")
-        self._aplicar_tema("assets/styles/estilo_claro.qss")
-        
+        self._aplicar_tema(recurso_path("assets/styles/estilo_claro.qss"))
+
    
     def abrir_historia_clinica(self):
         # Mostrar spinner 
