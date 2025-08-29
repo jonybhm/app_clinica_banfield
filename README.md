@@ -1,7 +1,7 @@
 # ICB Historias Clínicas
 
 <div align="center">
-  <img src="assets/logo/logo.png" alt="Logo" width="100" height="100">
+  <img src="assets/logo/logo.png" alt="Logo" width="300" height="300">
 </div>
 
 <div align="center">
@@ -26,7 +26,7 @@
 ---
 
 ## Sobre
-**ICB Historias Clínicas** es un sistema de gestión diseñado para la Clínica Banfield. Permite organizar turnos, agendas, pacientes e informes médicos de manera centralizada, facilitando el acceso rápido y seguro a la información clínica.
+**ICB Historias Clínicas** es un sistema de gestión diseñado para el ["Instituto Cardiológico Banfield"](http://www.institutocardiologicobanfield.com/quienes_somos.html). Permite organizar turnos, agendas, pacientes e informes médicos de manera centralizada, facilitando el acceso rápido y seguro a la información clínica.
 
 ---
 
@@ -91,7 +91,7 @@
 Si no deseás instalar dependencias manualmente, podés descargar el **instalador oficial** aquí:  
 [Descargar Instalador ICB](https://github.com/jonybhm/app_clinica_banfield/tree/main/releases/latest/download)
 
-Descargar el instalador para **Microsoft ODBC Driver 18 for SQL Server (x64)** aquí:  
+El instalador ya incluye **Microsoft ODBC Driver 18 for SQL Server (x64)**, pero en caso de necesitar instalarlo manualmente descargar de aquí:  
 [Descargar Instalador ODBC](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver17)
 
 ---
@@ -108,6 +108,6 @@ Consulta [LICENSE](LICENSE) para más información.
 ---
 
 ## Reconocimientos
-- ["Instituto Cardiológico Banfield"](https://www.institutocardiologicobanfield.com/) por el caso de uso real  
+- ["Instituto Cardiológico Banfield"](http://www.institutocardiologicobanfield.com/quienes_somos.html) por el caso de uso real  
 - Comunidad de Python y PyInstaller  
 - Inno Setup por el empaquetado del instalador
