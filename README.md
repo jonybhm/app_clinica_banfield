@@ -66,7 +66,7 @@
 ### Hecho con
 - **Python 3.11**
 - **PyInstaller** para generar el ejecutable
-- **Tkinter** para la interfaz gráfica
+- **PyQt** para la interfaz gráfica
 - **MS ODBC Driver** para conexión con base de datos SQL Server
 
 ---
