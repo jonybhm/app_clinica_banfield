@@ -12,16 +12,16 @@
 
 ## Tabla de Contenidos
 
-- [Sobre](#sobre--about)
-- [Características](#características--features)
-- [Capturas de Pantalla / Screenshots](#capturas-de-pantalla--screenshots)
-- [Empezandod](#empezando--getting-started)
-  - [Hecho con](#hecho-con--built-with)
-  - [Instalación](#instalación--installation)
+- [Sobre](#sobre)
+- [Características](#características)
+- [Capturas de Pantalla / Screenshots](#capturas-de-pantalla)
+- [Empezando](#empezando)
+  - [Hecho con](#hecho-con)
+  - [Instalación](#instalación)
   - [Ejecutable](#ejecutable)
-- [Autor](#autores-y-contribuyentes--authors--contributors)
-- [Licencia](#licencia--license)
-- [Reconocimientos](#reconocimientos--acknowledgments)
+- [Autor](#autor)
+- [Licencia](#licencia)
+- [Reconocimientos](#reconocimientos)
 
 ---
 
@@ -89,7 +89,7 @@
 
 ### Ejecutable
 Si no deseas instalar dependencias manualmente, podés descargar el **instalador oficial** aquí:  
-[Descargar Instalador](https://github.com/jonybhm/app_clinica_banfield/releases/latest/download/HistoriaClinicaSetup.exe)
+[Descargar Instalador](https://github.com/jonybhm/app_clinica_banfield/tree/main/releases/latest/download)
 
 ---
 
