@@ -6,18 +6,18 @@ Created on Thu May 15 22:18:21 2025
 """
 # modulos/historia_clinica.py
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
-    QDateEdit, QComboBox, QTableWidget, QTableWidgetItem, QMessageBox, QStackedLayout
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
+    QDateEdit, QTableWidget, QTableWidgetItem, QMessageBox, QStackedLayout
 )
 from PyQt5.QtCore import QDate, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QTextCharFormat, QBrush, QColor
-from acceso_db.repositorio_historia import buscar_turnos, obtener_dias_con_turnos
-import os
-from acceso_db.repositorio_historia import marcar_turno_atendido    
-import datetime
+import os, datetime
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from auxiliar.rutas import recurso_path
+from acceso_db.repositorio_historia import buscar_turnos, obtener_dias_con_turnos, marcar_turno_atendido
+
+
 class PantallaHistoriaClinica(QWidget):
     def __init__(self):
         super().__init__()
@@ -85,7 +85,6 @@ class PantallaHistoriaClinica(QWidget):
 
         
     def buscar_turnos_ui(self):
-
         # Mostrar spinner
         spinner = SpinnerDialog("Buscando turnos...")
         spinner.show()
@@ -132,15 +131,11 @@ class PantallaHistoriaClinica(QWidget):
                     item.setData(Qt.UserRole, codpac)
                 self.tabla.setItem(fila_idx, col_idx, item)
 
-            # Columna Atendido como combo
-            combo = QComboBox()
-            combo.addItems(["❌ FALTA ATENDER", "✔️ ATENDIDO"])
-            combo.setCurrentIndex(1 if atendido_val == 1 else 0)
-            combo.wheelEvent = lambda event: event.ignore()  # 🔒 desactivar scroll accidental
-            combo.currentIndexChanged.connect(
-                lambda idx, f=fila_idx, cp=codpac: self.cambiar_atendido(idx, f, cp)
-            )
-            self.tabla.setCellWidget(fila_idx, 7, combo)
+            # Columna Atendido (solo texto, no editable)
+            estado_atendido = "✔️ ATENDIDO" if atendido_val == 1 else "❌ FALTA ATENDER"
+            item_atendido = QTableWidgetItem(estado_atendido)
+            item_atendido.setFlags(item_atendido.flags() & ~Qt.ItemIsEditable)
+            self.tabla.setItem(fila_idx, 7, item_atendido)
 
             # Timer
             if fecha == fecha_hoy and recepcion_val and str(recepcion_val).isdigit() and atendido_val == 0:
@@ -152,23 +147,8 @@ class PantallaHistoriaClinica(QWidget):
 
         self.resaltar_dias_con_turnos()
 
-    
-
-    def cambiar_atendido(self, idx, fila_idx, codpac):
-        if idx == 1:  
-            fecha_turno = self.fecha_edit.date().toString("yyyy-MM-dd")
-            marcar_turno_atendido(codpac, fecha_turno, self.id_profesional)
-            
-            if codpac in self.timers:
-                self.timers[codpac]["timer"].stop()
-                del self.timers[codpac]
-
-            self.tabla.setItem(fila_idx, 7, QTableWidgetItem("✔️ ATENDIDO"))
-
-
 
     def iniciar_temporizador(self, fila_idx, codpac, horarec_val):
-        import datetime
         try:
             if horarec_val:                
                 if isinstance(horarec_val, datetime.time):
@@ -236,8 +216,6 @@ class PantallaHistoriaClinica(QWidget):
             qd = QDate(d.year, d.month, d.day)
             self.calendar.setDateTextFormat(qd, self.formato_turno)
 
-    from acceso_db.repositorio_historia import marcar_turno_atendido
-
     def abrir_dialogo_consulta(self):
         from modulos.dialogo_consulta import DialogoConsulta
         from acceso_db.repositorio_historia import obtener_datos_paciente_y_historial
@@ -270,20 +248,20 @@ class PantallaHistoriaClinica(QWidget):
             marcar_turno_atendido(codpac, fecha_turno, self.id_profesional)
 
             # 2. Refrescar columna ATENDIDO en la tabla
-            self.tabla.setItem(fila, 7, QTableWidgetItem("✔️"))
+            item_atendido = QTableWidgetItem("✔️ ATENDIDO")
+            item_atendido.setFlags(item_atendido.flags() & ~Qt.ItemIsEditable)
+            self.tabla.setItem(fila, 7, item_atendido)
 
             # 3. Detener temporizador de espera para ese paciente
-            if fila in self.timers:
-                self.timers[fila].stop()
-                del self.timers[fila]
+            if codpac in self.timers:
+                self.timers[codpac]["timer"].stop()
+                del self.timers[codpac]
 
             QMessageBox.information(self, "Guardado", "Evolución registrada con éxito.")
-
 
     def closeEvent(self, event):
         # Apagar timers al cerrar
         for t in self.timers.values():
-            t.stop()
+            t["timer"].stop()
         self.timers = {}
         super().closeEvent(event)
-

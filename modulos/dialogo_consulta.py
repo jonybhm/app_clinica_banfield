@@ -9,19 +9,26 @@ Created on Mon Jul 14 13:42:13 2025
 #modulos/dialogo_consulta.py
 from PyQt5.QtWidgets import (
     QDialog, QTabWidget, QWidget, QVBoxLayout, QLabel, QPushButton,
-    QHBoxLayout, QTextEdit, QMessageBox, QFormLayout, QTextEdit, QScrollArea, QComboBox, QWidget
+    QHBoxLayout, QTextEdit, QMessageBox, QScrollArea
 )
-from PyQt5.QtCore import QDateTime
 from datetime import datetime
 from auxiliar.rtf_utiles import limpiar_evolucion
-from acceso_db.repositorio_historia import obtener_lista_diagnosticos, obtener_lista_motivos_consulta, obtener_lista_examenes_complementarios, obtener_lista_tratamientos, obtener_lista_derivaciones
+from acceso_db.repositorio_historia import (
+    obtener_lista_diagnosticos,
+    obtener_lista_motivos_consulta,
+    obtener_lista_examenes_complementarios,
+    obtener_lista_tratamientos,
+    obtener_lista_derivaciones,
+    marcar_turno_atendido
+)
 from auxiliar.widgets_personalizados import ComboBoxBuscador
 from acceso_db.conexion import obtener_conexion
 import os
-from auxiliar.pdf_utiles import generar_pdf_historia, generar_pdf_informe
+from auxiliar.pdf_utiles import generar_pdf_historia
 from modulos.dialogo_informes import DialogoInformes
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
+
 
 class DialogoConsulta(QDialog):
     def __init__(self, datos_paciente, historial, parent=None):
@@ -30,7 +37,7 @@ class DialogoConsulta(QDialog):
         self.resize(600, 500)
 
         self.datos_paciente = datos_paciente  # diccionario
-        self.historial = historial            # lista de tuplas
+        self.historial = historial            # lista de dicts
 
         tabs = QTabWidget()
         self.tab_consulta = QWidget()
@@ -51,7 +58,7 @@ class DialogoConsulta(QDialog):
         boton_guardar.clicked.connect(self.confirmar_guardado)
 
         boton_salir = QPushButton("Salir")
-        boton_salir.clicked.connect(self.close)
+        boton_salir.clicked.connect(self.reject)
 
         boton_imprimir = QPushButton("Imprimir Historial Clínico")
         boton_imprimir.clicked.connect(self.abrir_vista_previa)
@@ -110,7 +117,6 @@ class DialogoConsulta(QDialog):
             historial_layout.addWidget(QLabel(str(fecha)))
             historial_layout.addWidget(texto)
 
-                
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(historial_widget)
@@ -130,34 +136,26 @@ class DialogoConsulta(QDialog):
         self.cmb_examenes = ComboBoxBuscador()
         self.cmb_derivacion = ComboBoxBuscador()
 
-        # Cargar diagnósticos
+        # Cargar listas desde DB
         self.diagnosticos = obtener_lista_diagnosticos()
         self.examenes = obtener_lista_examenes_complementarios()
         self.motivos = obtener_lista_motivos_consulta()
         self.tratamientos = obtener_lista_tratamientos()
         self.derivacion = obtener_lista_derivaciones()
 
-        # Convertir cada lista (codigo, descripcion) en "descripcion (codigo)" y agregar opción vacía
-        diagnosticos_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.diagnosticos]
-        examenes_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.examenes]
-        motivos_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.motivos]
-        tratamientos_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.tratamientos]
-        derivacion_items = [""] + [f"{descripcion} ({codigo})" for codigo, descripcion in self.derivacion]
+        # Convertir en listas con formato "desc (codigo)"
+        diagnosticos_items = [""] + [f"{desc} ({cod})" for cod, desc in self.diagnosticos]
+        examenes_items = [""] + [f"{desc} ({cod})" for cod, desc in self.examenes]
+        motivos_items = [""] + [f"{desc} ({cod})" for cod, desc in self.motivos]
+        tratamientos_items = [""] + [f"{desc} ({cod})" for cod, desc in self.tratamientos]
+        derivacion_items = [""] + [f"{desc} ({cod})" for cod, desc in self.derivacion]
 
-
-        # Cargar en los ComboBox con setItems
+        # Cargar en ComboBox
         self.cmb_diagnostico.setItems(diagnosticos_items)
         self.cmb_examenes.setItems(examenes_items)
         self.cmb_motivo.setItems(motivos_items)
         self.cmb_tratamiento.setItems(tratamientos_items)
         self.cmb_derivacion.setItems(derivacion_items)
-
-        # Forzar selección en el ítem vacío
-        self.cmb_diagnostico.setCurrentIndex(0)
-        self.cmb_examenes.setCurrentIndex(0)
-        self.cmb_motivo.setCurrentIndex(0)
-        self.cmb_tratamiento.setCurrentIndex(0)
-        self.cmb_derivacion.setCurrentIndex(0)
 
         layout.addWidget(QLabel("Motivo de Consulta:"))
         layout.addWidget(self.cmb_motivo)
@@ -177,19 +175,15 @@ class DialogoConsulta(QDialog):
         layout.addWidget(QLabel("Derivación:"))
         layout.addWidget(self.cmb_derivacion)
 
-        # self.tab_evolucion.setLayout(layout)
-
-        container = QWidget()
-        container.setLayout(layout)
-
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        container = QWidget()
+        container.setLayout(layout)
         scroll.setWidget(container)
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(scroll)
         self.tab_evolucion.setLayout(main_layout)
-        
 
     def confirmar_guardado(self):
         reply = QMessageBox.question(
@@ -200,25 +194,22 @@ class DialogoConsulta(QDialog):
             self.guardar_evolucion()
 
     def guardar_evolucion(self):
-
-        # Mostrar spinner
-        spinner = SpinnerDialog("Guardando...")
+        # Spinner
+        spinner = SpinnerDialog("Guardando evolución...")
         spinner.show()
         QApplication.processEvents()
-        
+
         texto_diag = self.cmb_diagnostico.currentText()
         codigo_diag = None
         if "(" in texto_diag and texto_diag.endswith(")"):
             codigo_diag = texto_diag.split("(")[-1].rstrip(")")
 
-        texto_final = (            
-            f"{self.txt_evolucion.toPlainText()}"
-        )
+        texto_final = self.txt_evolucion.toPlainText()
 
         conn = obtener_conexion()
         cursor = conn.cursor()
 
-        # Obtener datos base
+        # Datos base
         hclin = self.datos_paciente["HCLIN"]
         codpac = self.datos_paciente["CODPAC"]
         id_profesional = self.datos_paciente["ID_PROFESIONAL"]  
@@ -249,27 +240,28 @@ class DialogoConsulta(QDialog):
         ))
 
         conn.commit()
+
+        # Marcar el turno como atendido
+        marcar_turno_atendido(codpac, fecha_actual, id_profesional)
+
         conn.close()
 
         QMessageBox.information(self, "Éxito", "Evolución guardada correctamente")
-        self.accept()
-    
+        self.accept()  # Devuelve Accepted para que la tabla se actualice
+
     def abrir_vista_previa(self):
-        # Mostrar spinner
         spinner = SpinnerDialog("Abriendo vista previa...")
         spinner.show()
         QApplication.processEvents()
 
-        # Generar PDF temporal
         archivo = generar_pdf_historia(self.datos_paciente, self.historial)       
         os.startfile(archivo)  
 
     def abrir_informes(self):
-        # Mostrar spinner
         spinner = SpinnerDialog("Abriendo informes...")
         spinner.show()
-        
         QApplication.processEvents()
+
         codpac = self.datos_paciente["CODPAC"]
         dlg = DialogoInformes(codpac, self.datos_paciente["PROFESIONAL"], self)
         dlg.exec_()

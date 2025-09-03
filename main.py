@@ -5,7 +5,20 @@ Created on Thu May 15 22:18:21 2025
 @author: Jonathan
 """
 # main.py
-import sys, time
+import sys, time, os, ctypes
+
+def es_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+if not es_admin():
+    # Relanzar con permisos de administrador
+    params = " ".join([f'"{arg}"' for arg in sys.argv])
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+    sys.exit()
+    
 from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
@@ -13,6 +26,8 @@ from main_window import MainWindow
 from modulos.login import PantallaLogin
 from auxiliar.rutas import recurso_path
 from PyQt5.QtWidgets import QApplication, QMessageBox
+from acceso_db.utilidades import obtener_hora_servidor, sincronizar_hora_windows
+
 
 class ControladorApp:
     def __init__(self, app):
@@ -49,6 +64,11 @@ if __name__ == "__main__":
         splash.show()
         app.processEvents()
 
+        # Sincronizar hora con servidor SQL
+        from datetime import datetime
+        hora_servidor = obtener_hora_servidor()
+        sincronizar_hora_windows(hora_servidor)
+        
         time.sleep(2)
 
         controlador = ControladorApp(app)
