@@ -290,7 +290,7 @@ def buscar_pacientes(nombre=None, dni=None):
     cursor = conn.cursor()
 
     query = """
-        SELECT TOP 50 p.CODPAC, p.NOMBRE, p.DOCUMENTO, 
+        SELECT TOP 50 p.CODPAC, p.NOMBRE, p.DOCUMENTO,
                (SELECT TOP 1 EVOLUCION 
                 FROM dbo.AHISTCLIN h 
                 WHERE h.CODPAC = p.CODPAC 
@@ -299,19 +299,13 @@ def buscar_pacientes(nombre=None, dni=None):
         WHERE 1=1
     """
     params = []
-    if nombre and nombre.strip():
-        query += " AND p.NOMBRE LIKE ?"
-        params.append(f"%{nombre}%")
     if dni and dni.strip():
         query += " AND p.DOCUMENTO = ?"
         params.append(dni)
 
     cursor.execute(query, params)
     rows = cursor.fetchall()
-
-    # Guardar nombres de columnas antes de cerrar conexión
     cols = [col[0] for col in cursor.description]
-
     conn.close()
     return [dict(zip(cols, row)) for row in rows]
 

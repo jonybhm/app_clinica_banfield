@@ -17,6 +17,8 @@ from modulos.dialogo_consulta import DialogoConsulta
 from auxiliar.widgets_personalizados import ComboBoxBuscador
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QShortcut
+from PyQt5.QtGui import QKeySequence
 
 class PantallaPacientes(QWidget):
     def __init__(self, id_profesional, nombre_profesional):
@@ -32,14 +34,6 @@ class PantallaPacientes(QWidget):
 
         # Layout buscadores
         buscador_layout = QHBoxLayout()
-
-        # Nombre
-        self.combo_nombre = ComboBoxBuscador()
-        self.combo_nombre.setPlaceholderText("Buscar por Nombre")
-        todos = obtener_pacientes()
-        nombres_lista = [p["NOMBRE"] for p in todos]
-        self.combo_nombre.setItems(nombres_lista)
-        buscador_layout.addWidget(self.combo_nombre)
 
         # DNI
         self.input_dni = QLineEdit()
@@ -57,9 +51,14 @@ class PantallaPacientes(QWidget):
         self.layout.addWidget(self.tabla)
 
         # Abrir historial
-        self.btn_historial = QPushButton("Ver Historial / Imprimir")
+        self.btn_historial = QPushButton("Ver Detalle del Paciente")
         self.btn_historial.clicked.connect(self.abrir_dialogo_consulta)
         self.layout.addWidget(self.btn_historial)
+
+        # Enter y doble click
+        shortcut_enter = QShortcut(QKeySequence(Qt.Key_Return), self.input_dni)
+        shortcut_enter.activated.connect(self.buscar_paciente_ui)
+        self.tabla.doubleClicked.connect(self.abrir_dialogo_consulta)
 
 
     def buscar_paciente_ui(self):
@@ -68,24 +67,20 @@ class PantallaPacientes(QWidget):
         spinner.show()
         QApplication.processEvents()
 
-        """ Ejecuta búsqueda por nombre o DNI """
-        nombre = self.combo_nombre.currentText().strip()
+        """ Ejecuta búsqueda por DNI """
         dni = self.input_dni.text().strip()
 
-        if not nombre and not dni:
-            QMessageBox.warning(self, "Atención", "Ingrese Nombre o DNI para buscar.")
+        if not dni:
+            QMessageBox.warning(self, "Atención", "Ingrese DNI para buscar.")
             return
 
-        resultados = buscar_pacientes(nombre, dni)
+        resultados = buscar_pacientes(dni=dni)
 
         if not resultados:
             QMessageBox.information(self, "Sin resultados", "No se encontraron pacientes con esos datos.")
             return
 
-        # Llenar el combo con todos los nombres
-        nombres_lista = [r["NOMBRE"] for r in resultados if r.get("NOMBRE")]
-        self.combo_nombre.setItems(nombres_lista)
-
+        
         # Llenar tabla
         self.tabla.clear()
         self.tabla.setRowCount(len(resultados))

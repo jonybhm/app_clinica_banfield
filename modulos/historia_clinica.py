@@ -16,7 +16,8 @@ from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from auxiliar.rutas import recurso_path
 from acceso_db.repositorio_historia import buscar_turnos, obtener_dias_con_turnos, marcar_turno_atendido
-
+from PyQt5.QtWidgets import QShortcut
+from PyQt5.QtGui import QKeySequence
 
 class PantallaHistoriaClinica(QWidget):
     def __init__(self):
@@ -75,13 +76,19 @@ class PantallaHistoriaClinica(QWidget):
             self.label_no_turnos.setText("No hay turnos en esta fecha.")
         self.stack_layout.addWidget(self.label_no_turnos)
 
-        # Nueva Consulta
-        btn_nueva = QPushButton("Nueva Consulta")
+        # Ver Detalle del Paciente
+        btn_nueva = QPushButton("Ver Detalle del Paciente")
         btn_nueva.clicked.connect(self.abrir_dialogo_consulta)
         self.layout.addWidget(btn_nueva)
 
         # Diccionario de timers
         self.timers = {}
+        
+        # Enter y doble click
+        shortcut_enter = QShortcut(QKeySequence(Qt.Key_Return), self)
+        shortcut_enter.activated.connect(self.buscar_turnos_ui)
+
+        self.tabla.doubleClicked.connect(self.abrir_dialogo_consulta)
 
         
     def buscar_turnos_ui(self):
