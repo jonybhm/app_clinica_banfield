@@ -96,6 +96,7 @@ El instalador ya incluye **Microsoft ODBC Driver 18 for SQL Server (x64)**, pero
 
 Lo mismo sucede con el **Visual C++ 2015-2019 Redistributable** necesario para ejecutar el ODBC, en caso de necesitarlo usar el siguiente link:
 [Descargar Instalador Visual C++ 2015-2019](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
 ---
 
 ## Autor
