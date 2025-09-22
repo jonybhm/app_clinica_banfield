@@ -15,7 +15,7 @@ import os, datetime
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from auxiliar.rutas import recurso_path
-from acceso_db.repositorio_historia import buscar_turnos, obtener_dias_con_turnos, marcar_turno_atendido
+from acceso_db.repositorio_historia import buscar_turnos, obtener_dias_con_turnos, marcar_turno_atendido,paciente_tiene_evolucion
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtGui import QKeySequence
 
@@ -77,7 +77,7 @@ class PantallaHistoriaClinica(QWidget):
         self.stack_layout.addWidget(self.label_no_turnos)
 
         # Ver Detalle del Paciente
-        btn_nueva = QPushButton("Ver Detalle del Paciente")
+        btn_nueva = QPushButton("Ver Detalle del Paciente y Evolucionar")
         btn_nueva.clicked.connect(self.abrir_dialogo_consulta)
         self.layout.addWidget(btn_nueva)
 
@@ -107,8 +107,9 @@ class PantallaHistoriaClinica(QWidget):
         else:
             self.stack_layout.setCurrentWidget(self.tabla)
 
+        # Reiniciar tabla
         self.tabla.clear()
-        self.tabla.setRowCount(len(turnos))
+        self.tabla.setRowCount(0)  # arranca vacía
         self.tabla.setColumnCount(8)
         self.tabla.setHorizontalHeaderLabels([
             "Paciente", "Edad", "Sexo", "Recepción", "Espera", "H. Turno", "Profesional", "Atendido"
@@ -116,18 +117,31 @@ class PantallaHistoriaClinica(QWidget):
 
         fecha_hoy = QDate.currentDate().toString("yyyy-MM-dd")
 
-        for fila_idx, fila in enumerate(turnos):
-            codpac = fila["CODPAC"]
-            recepcion_val = fila.get("RECEPCION", 0)
-            atendido_val = fila.get("ATENDIDO", 0)
+        for fila in turnos:
+            codpac = fila.get("CODPAC")
+            nombre = fila.get("NOMBRE")
+
+            # Saltar filas inválidas
+            if not codpac or not nombre:
+                continue  
+
+            recepcion_val = fila.get("ATENDIDO", 0)
+            hora_turno = fila.get("HORA", "")
+
+            # Ver si ya tiene evolución cargada
+            tiene_evo = paciente_tiene_evolucion(codpac, fecha)
+
+            # Insertar nueva fila
+            row_idx = self.tabla.rowCount()
+            self.tabla.insertRow(row_idx)
 
             valores_visibles = [
-                fila.get("NOMBRE", ""),
+                nombre,
                 fila.get("EDAD", ""),
                 fila.get("SEXO", ""),
-                "✔️" if recepcion_val and str(recepcion_val).isdigit() else "❌",
-                "",  # Espera (se rellena más abajo)
-                fila.get("HORA", ""),
+                "✔️" if recepcion_val == 1 else "❌",
+                "",
+                hora_turno,
                 fila.get("PROFESIONAL", "")
             ]
 
@@ -136,21 +150,21 @@ class PantallaHistoriaClinica(QWidget):
                 item = QTableWidgetItem(str(valor))
                 if col_idx == 0:
                     item.setData(Qt.UserRole, codpac)
-                self.tabla.setItem(fila_idx, col_idx, item)
+                self.tabla.setItem(row_idx, col_idx, item)
 
-            # Columna Atendido (solo texto, no editable)
-            estado_atendido = "✔️ ATENDIDO" if atendido_val == 1 else "❌ FALTA ATENDER"
+            # Columna Atendido
+            estado_atendido = "✔️ ATENDIDO" if tiene_evo else "❌ FALTA ATENDER"
             item_atendido = QTableWidgetItem(estado_atendido)
             item_atendido.setFlags(item_atendido.flags() & ~Qt.ItemIsEditable)
-            self.tabla.setItem(fila_idx, 7, item_atendido)
+            self.tabla.setItem(row_idx, 7, item_atendido)
 
             # Timer
-            if fecha == fecha_hoy and recepcion_val and str(recepcion_val).isdigit() and atendido_val == 0:
+            if fecha == fecha_hoy and recepcion_val == 1 and not tiene_evo:
                 if codpac not in self.timers:
-                    self.iniciar_temporizador(fila_idx, codpac, recepcion_val)
-                else:                    
+                    self.iniciar_temporizador(row_idx, codpac, fila.get("HORAREC"))
+                else:
                     tiempo_actual = self.timers[codpac]["tiempo"]
-                    self.tabla.setItem(fila_idx, 4, QTableWidgetItem(tiempo_actual))
+                    self.tabla.setItem(row_idx, 4, QTableWidgetItem(tiempo_actual))
 
         self.resaltar_dias_con_turnos()
 

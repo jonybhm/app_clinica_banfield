@@ -242,7 +242,7 @@ class DialogoConsulta(QDialog):
         conn.commit()
 
         # Marcar el turno como atendido
-        marcar_turno_atendido(codpac, fecha_actual, id_profesional)
+        # marcar_turno_atendido(codpac, fecha_actual, id_profesional)
 
         conn.close()
 

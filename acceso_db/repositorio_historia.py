@@ -364,3 +364,15 @@ def marcar_turno_atendido(codpac, fecha, id_profesional):
     cursor.execute(query, (codpac, fecha, id_profesional))
     conn.commit()
     conn.close()
+
+def paciente_tiene_evolucion(codpac, fecha_turno):
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT TOP 1 1
+        FROM dbo.AHISTCLIN
+        WHERE CODPAC = ? AND CAST(FECHA AS DATE) = CAST(? AS DATE)
+    """, (codpac, fecha_turno))
+    row = cursor.fetchone()
+    conn.close()
+    return row is not None

@@ -51,7 +51,7 @@ class PantallaPacientes(QWidget):
         self.layout.addWidget(self.tabla)
 
         # Abrir historial
-        self.btn_historial = QPushButton("Ver Detalle del Paciente")
+        self.btn_historial = QPushButton("Ver Detalle del Paciente y Evolucionar")
         self.btn_historial.clicked.connect(self.abrir_dialogo_consulta)
         self.layout.addWidget(self.btn_historial)
 
