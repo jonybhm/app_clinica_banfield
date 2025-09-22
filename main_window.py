@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QApplication, QMenuBar, QMenu, QAction, QMessageBox
 )
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSettings
 from modulos.inicio import PantallaInicio
 from modulos.historia_clinica import PantallaHistoriaClinica
 from modulos.login import PantallaLogin
@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.datos_usuario = datos_usuario
         
+        self.settings = QSettings("ClinicaBanfield", "HistoriasClinicas")
         self.setWindowTitle("Clínica Banfield")
         self.setGeometry(200, 100, 900, 700)
 
@@ -81,9 +82,12 @@ class MainWindow(QMainWindow):
         tipo_usuario = "Médico" if datos_usuario["NIVEL"] == 5 else "Recepción"
         self.statusBar().showMessage(f"Usuario: {datos_usuario['APELLIDO']} | Puesto: {tipo_usuario}")  
 
-        # Aplicar tema oscuro
-        QApplication.setStyle("Fusion")
-        self._aplicar_tema(recurso_path("assets/styles/estilo_oscuro.qss"))
+        # Aplicar el último tema usado o el oscuro si no hay nada guardado
+        tema_guardado = self.settings.value("tema", "oscuro")  
+        if tema_guardado == "oscuro":
+            self._aplicar_tema_oscuro()
+        else:
+            self._aplicar_tema_claro()
 
 
     def _crear_menu(self):
@@ -179,9 +183,19 @@ class MainWindow(QMainWindow):
             with open(archivo, "r") as f:
                 estilo = f.read()
                 QApplication.instance().setStyleSheet(estilo)  # aplica el estilo globalmente
+            # Guardar la preferencia del usuario
+            tema = "oscuro" if "oscuro" in archivo else "claro"
+            self.settings.setValue("tema", tema)
         except FileNotFoundError:
             print(f"Archivo de estilos {archivo} no encontrado")
             
+    def _aplicar_tema_oscuro(self):
+        QApplication.setStyle("Fusion")
+        self._aplicar_tema(recurso_path("assets/styles/estilo_oscuro.qss"))
+
+    def _aplicar_tema_claro(self):
+        QApplication.setStyle("Fusion")
+        self._aplicar_tema(recurso_path("assets/styles/estilo_claro.qss"))
         
     def login_exitoso(self, datos_usuario):
         self.btn_inicio.setEnabled(True)
@@ -191,13 +205,6 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(1)
         
     
-    def _aplicar_tema_oscuro(self):
-        QApplication.setStyle("Fusion")
-        self._aplicar_tema(recurso_path("assets/styles/estilo_oscuro.qss"))
-
-    def _aplicar_tema_claro(self):
-        QApplication.setStyle("Fusion")
-        self._aplicar_tema(recurso_path("assets/styles/estilo_claro.qss"))
 
    
     def abrir_historia_clinica(self):

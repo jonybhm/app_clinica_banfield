@@ -94,6 +94,8 @@ Si no deseás instalar dependencias manualmente, podés descargar el **instalado
 El instalador ya incluye **Microsoft ODBC Driver 18 for SQL Server (x64)**, pero en caso de necesitar instalarlo manualmente descargar de aquí:  
 [Descargar Instalador ODBC](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver17)
 
+Lo mismo sucede con el **Visual C++ 2015-2019 Redistributable** necesario para ejecutar el ODBC, en caso de necesitarlo usar el siguiente link:
+[Descargar Instalador Visual C++ 2015-2019](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 ---
 
 ## Autor
