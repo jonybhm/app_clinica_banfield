@@ -87,9 +87,12 @@
 
 ---
 
-### Ejecutable
+### Releases y Ejecutable
+Para ver las versiones disponibles
+[Releases](https://github.com/jonybhm/app_clinica_banfield/releases/)
+
 Si no deseás instalar dependencias manualmente, podés descargar el **instalador oficial** aquí:  
-[Descargar Instalador ICB](https://github.com/jonybhm/app_clinica_banfield/tree/main/releases/latest/download)
+[Descargar Instalador ICB](https://github.com/jonybhm/app_clinica_banfield/releases/download/v1.0.0/ICBHistoriaClinicaSetup-v1.0.0.exe)
 
 El instalador ya incluye **Microsoft ODBC Driver 18 for SQL Server (x64)**, pero en caso de necesitar instalarlo manualmente descargar de aquí:  
 [Descargar Instalador ODBC](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver17)
