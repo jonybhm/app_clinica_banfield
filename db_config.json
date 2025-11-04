@@ -1,0 +1,7 @@
+{
+  "server": "SERVER",
+  "database": "ICB",
+  "username": "sa",
+  "password": "Comeba.1",
+  "mode": "sqlserver"
+}

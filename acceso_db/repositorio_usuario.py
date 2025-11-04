@@ -4,6 +4,8 @@ Created on Wed May 21 19:25:11 2025
 
 @author: Jonathan
 """
+
+#acceso_db/repositorio_usuario.py
 from acceso_db.conexion import obtener_conexion
 from acceso_db.config import MODO_CONEXION
 from acceso_db.conexion import obtener_conexion
@@ -17,26 +19,26 @@ def login_usuario(usuario, clave):
             SELECT u.CODIGO, u.APELLIDO, u.NIVEL, u.ACTIVO, m.CODMED
             FROM dbo_AUSUARIOS u
             LEFT JOIN dbo_AMEDEJEC m ON u.CODIGO = m.USUHC
-            WHERE u.APELLIDO = ? AND u.CONTRA = ?
+            WHERE u.APELLIDO = ? AND u.CONTRA = ? AND u.ACTIVO = 1
         """
-    else:  # sqlserver
+    else:  # SQL Server
         query = """
             SELECT u.CODIGO, u.APELLIDO, u.NIVEL, u.ACTIVO, m.CODMED
             FROM dbo.AUSUARIOS u
             LEFT JOIN dbo.AMEDEJEC m ON u.CODIGO = m.USUHC
-            WHERE u.APELLIDO = ? AND u.CONTRA = ?
+            WHERE u.APELLIDO = ? AND u.CONTRA = ? AND u.ACTIVO = 1
         """
 
     cursor.execute(query, (usuario, clave))
     resultado = cursor.fetchone()
     conn.close()
 
-    if resultado and resultado.ACTIVO == 1:
+    if resultado:
         return {
             "CODIGO": resultado.CODIGO,
             "APELLIDO": resultado.APELLIDO.strip(),
             "NIVEL": resultado.NIVEL,
-            "CODMED": resultado.CODMED  #ID del profesional
+            "CODMED": resultado.CODMED  # ID del profesional
         }
     else:
         return None

@@ -10,45 +10,56 @@ from acceso_db.conexion import obtener_conexion
 from acceso_db.config import MODO_CONEXION
 from datetime import datetime
 
+
 def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
     conn = obtener_conexion()
     cursor = conn.cursor()
 
-    query = """
+    # Obtener turnos y datos de ACABPAC
+    cursor.execute("""
         SELECT 
-            t.CODPAC, t.HORATUR, t.MINTUR, t.HORAREC, t.FECHTUR, t.RECEPCION, t.ATENDIDO,
+            COALESCE(t.CODPAC, c.CODPAC) AS CODPAC,
+            COALESCE(t.FECHTUR, c.FEPACIENTE) AS FECHA,
+            t.HORATUR, t.MINTUR,
             p.NOMBRE, p.FENAC, p.SEXO, p.HISTORIACLI,
-            h.EVOLUCION
+            c.RECEPCION, c.HORA AS HORAREC, c.ANULADO, c.ATENDHC
         FROM dbo.AMOVTURN t
-        LEFT JOIN dbo.AHISTORPAC p ON t.CODPAC = p.CODPAC
-        LEFT JOIN dbo.AHISTCLIN h 
-            ON h.CODPAC = t.CODPAC 
-            AND h.FECHA = t.FECHTUR 
-            AND h.PROFES = ?
-        WHERE CONVERT(date, t.FECHTUR) = ? 
-          AND t.CODIGO = ?
-    """
+        FULL OUTER JOIN dbo.ACABPAC c 
+            ON c.CODPAC = t.CODPAC
+            AND CAST(c.FEPACIENTE AS DATE) = CAST(t.FECHTUR AS DATE)
+            AND c.MEDEJEPAC = t.CODIGO
+        LEFT JOIN dbo.AHISTORPAC p 
+            ON COALESCE(t.CODPAC, c.CODPAC) = p.CODPAC
+        WHERE CAST(COALESCE(t.FECHTUR, c.FEPACIENTE) AS DATE) = CAST(? AS DATE)
+          AND COALESCE(t.CODIGO, c.MEDEJEPAC) = ?
+    """, (fecha, id_profesional))
 
-    params = [id_profesional, fecha, id_profesional]
-
-    if estado == "PENDIENTE":
-        query += " AND t.ATENDIDO = 0"
-    elif estado == "ATENDIDO":
-        query += " AND t.ATENDIDO = 1"
-
-    query += " ORDER BY t.HORATUR, t.MINTUR"
-
-    cursor.execute(query, params)
     resultados = cursor.fetchall()
     conn.close()
 
     datos = []
     for row in resultados:
-        codpac, horatur, mintur, horarec, fecha_tur, recepcion, atendido, nombre, fenac, sexo, hclin, evolucion = row
+        (codpac, fecha_tur, horatur, mintur,
+         nombre, fenac, sexo, hclin,
+         recepcion, horarec, anulado, atendhc) = row
+
+        if not codpac or not nombre:
+            continue
 
         edad = calcular_edad(fenac)
-        hora_turno = horatur * 100 + mintur if horatur is not None and mintur is not None else None
-        espera = "-" 
+        hora_turno_fmt = format_hora(horatur * 100 + mintur if horatur is not None else None)
+        hora_recep_fmt = format_hora(horarec)
+
+        # Estado de recepción
+        if anulado == 1:
+            recepcion_txt = "🚫 TURNO ANULADO"
+        elif not hclin or hclin == 0:
+            recepcion_txt = "⚠️ FALTA HC"
+        elif recepcion:
+            recepcion_txt = f"✔️ {hora_recep_fmt}"
+        else:
+            recepcion_txt = "❌ NO RECEPCIONADO"
+
         sexo_txt = "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-"
 
         datos.append({
@@ -57,19 +68,19 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
             "EDAD": f"{edad} años" if edad else "?",
             "SEXO": sexo_txt,
             "FECHA": fecha_tur,
-            "HORA": format_hora(hora_turno),
-            "HORA_REC": format_hora(horarec),
-            "ESPERA": espera,
-            "RECEPCION": recepcion,
+            "HORA": hora_turno_fmt,
+            "HORAREC": hora_recep_fmt,
+            "RECEPCION": recepcion_txt,
             "HCLIN": hclin,
-            "EVOLUCION": evolucion,
-            "ATENDIDO": atendido,
+            "ANULADO": anulado,
+            "ATENDHC": atendhc or 0,
             "PROFESIONAL": nombre_profesional,
             "ID_PROFESIONAL": id_profesional
         })
 
 
     return datos
+
 
 
 
@@ -163,11 +174,20 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
     conn = obtener_conexion()
     cursor = conn.cursor()
 
-    # Datos del paciente
+    # Traer datos del paciente con JOIN a la tabla de obras sociales
     cursor.execute("""
-        SELECT CODPAC, HISTORIACLI, NOMBRE, FENAC, SEXO
-        FROM dbo.AHISTORPAC
-        WHERE CODPAC = ?
+        SELECT 
+            p.CODPAC,
+            p.HISTORIACLI,
+            p.NOMBRE,
+            p.FENAC,
+            p.SEXO,
+            o.DESOBRA AS ENTIDAD_NOMBRE,
+            p.COPLAN,
+            p.AFILIADO
+        FROM dbo.AHISTORPAC p
+        LEFT JOIN dbo.AOBRASPX o ON p.ENTIDAD = o.CODOBRA
+        WHERE p.CODPAC = ?
     """, (codpac,))
     paciente = cursor.fetchone()
 
@@ -175,7 +195,7 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
         conn.close()
         return None, []
 
-    codpac, hclin, nombre, fenac, sexo = paciente
+    codpac, hclin, nombre, fenac, sexo, entidad_nombre, coplan, afiliado = paciente
 
     datos_paciente = {
         "CODPAC": codpac,
@@ -183,6 +203,9 @@ def obtener_datos_paciente_y_historial(codpac, id_profesional):
         "NOMBRE": nombre,
         "EDAD": calcular_edad(fenac),
         "SEXO": "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-",
+        "ENTIDAD": entidad_nombre or "",
+        "PLAN": coplan or "",
+        "AFILIADO": afiliado or "",
         "ID_PROFESIONAL": id_profesional
     }
 

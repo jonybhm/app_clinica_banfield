@@ -101,6 +101,18 @@ class PantallaHistoriaClinica(QWidget):
         estado = self.estado_combo.currentText()
         turnos = buscar_turnos(fecha, estado, self.id_profesional, self.nombre_profesional)
 
+        # Filtrar resultados según estado
+        if estado == "PENDIENTE":
+            turnos = [
+                t for t in turnos
+                if "✔️" in t.get("RECEPCION", "") and t.get("ATENDHC", 0) == 0 and t.get("ANULADO", 0) == 0
+            ]
+        elif estado == "ATENDIDO":
+            turnos = [
+                t for t in turnos
+                if t.get("ATENDHC", 0) == 1
+            ]        
+
         if not turnos:
             self.stack_layout.setCurrentWidget(self.label_no_turnos)
             return
@@ -109,7 +121,7 @@ class PantallaHistoriaClinica(QWidget):
 
         # Reiniciar tabla
         self.tabla.clear()
-        self.tabla.setRowCount(0)  # arranca vacía
+        self.tabla.setRowCount(0)
         self.tabla.setColumnCount(8)
         self.tabla.setHorizontalHeaderLabels([
             "Paciente", "Edad", "Sexo", "Recepción", "Espera", "H. Turno", "Profesional", "Atendido"
@@ -125,8 +137,9 @@ class PantallaHistoriaClinica(QWidget):
             if not codpac or not nombre:
                 continue  
 
-            recepcion_val = fila.get("ATENDIDO", 0)
-            hora_turno = fila.get("HORA", "")
+            recepcion_txt = fila.get("RECEPCION", "❌ FALTA")
+            anulado = fila.get("ANULADO", 0)
+            hora_turno = fila.get("HORA", "-")
 
             # Ver si ya tiene evolución cargada
             tiene_evo = paciente_tiene_evolucion(codpac, fecha)
@@ -139,13 +152,12 @@ class PantallaHistoriaClinica(QWidget):
                 nombre,
                 fila.get("EDAD", ""),
                 fila.get("SEXO", ""),
-                "✔️" if recepcion_val == 1 else "❌",
+                recepcion_txt,       
                 "",
                 hora_turno,
                 fila.get("PROFESIONAL", "")
             ]
 
-            # Columnas normales
             for col_idx, valor in enumerate(valores_visibles):
                 item = QTableWidgetItem(str(valor))
                 if col_idx == 0:
@@ -153,13 +165,24 @@ class PantallaHistoriaClinica(QWidget):
                 self.tabla.setItem(row_idx, col_idx, item)
 
             # Columna Atendido
-            estado_atendido = "✔️ ATENDIDO" if tiene_evo else "❌ FALTA ATENDER"
+            atendhc = fila.get("ATENDHC", 0)
+            tiene_evo = paciente_tiene_evolucion(codpac, fecha)
+            if atendhc == 1 or tiene_evo:
+                estado_atendido = "✔️ ATENDIDO"
+            else:
+                estado_atendido = "❌ FALTA ATENDER"
             item_atendido = QTableWidgetItem(estado_atendido)
             item_atendido.setFlags(item_atendido.flags() & ~Qt.ItemIsEditable)
             self.tabla.setItem(row_idx, 7, item_atendido)
 
+            # Colorear fila si está anulada
+            if anulado == 1:
+                for col in range(self.tabla.columnCount()):
+                    self.tabla.item(row_idx, col).setForeground(QBrush(QColor("#888888")))  # gris
+                    self.tabla.item(row_idx, col).setBackground(QBrush(QColor("#f5f5f5")))
+
             # Timer
-            if fecha == fecha_hoy and recepcion_val == 1 and not tiene_evo:
+            if fecha == fecha_hoy and "✔️" in recepcion_txt and not tiene_evo and anulado == 0:
                 if codpac not in self.timers:
                     self.iniciar_temporizador(row_idx, codpac, fila.get("HORAREC"))
                 else:
@@ -167,6 +190,7 @@ class PantallaHistoriaClinica(QWidget):
                     self.tabla.setItem(row_idx, 4, QTableWidgetItem(tiempo_actual))
 
         self.resaltar_dias_con_turnos()
+
 
 
     def iniciar_temporizador(self, fila_idx, codpac, horarec_val):
@@ -257,6 +281,13 @@ class PantallaHistoriaClinica(QWidget):
         datos_paciente, historial = obtener_datos_paciente_y_historial(codpac, self.id_profesional)
         if not datos_paciente:
             QMessageBox.warning(self, "Error", "No se pudieron obtener los datos del paciente.")
+            return
+        if not datos_paciente.get("HCLIN") or datos_paciente["HCLIN"] == 0:
+            QMessageBox.critical(
+                self,
+                "Error de Datos",
+                "⚠️ ERROR CON LOS DATOS DEL PACIENTE\n\nPor favor, enviar a RECEPCIÓN para corrección."
+            )
             return
 
         datos_paciente["ID_PROFESIONAL"] = self.id_profesional

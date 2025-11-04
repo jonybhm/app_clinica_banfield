@@ -86,7 +86,11 @@ class DialogoConsulta(QDialog):
         layout.addWidget(QLabel(f"Protocolo: {datos.get('PROTOCOLO', '')}"))
         layout.addWidget(QLabel(f"Edad: {datos.get('EDAD', '')}"))
         layout.addWidget(QLabel(f"Sexo: {datos.get('SEXO', '')}"))
-        layout.addWidget(QLabel(f"Entidad: {datos.get('ENTIDAD', '')}"))
+        layout.addWidget(QLabel(
+            f"Entidad: {datos.get('ENTIDAD', '')}   |   "
+            f"Plan: {datos.get('PLAN', '')}   |   "
+            f"N° Afiliado: {datos.get('AFILIADO', '')}"
+        ))
         layout.addWidget(QLabel(f"Profesional: {datos.get('PROFESIONAL', '')}"))
 
         # Historial
@@ -194,7 +198,6 @@ class DialogoConsulta(QDialog):
             self.guardar_evolucion()
 
     def guardar_evolucion(self):
-        # Spinner
         spinner = SpinnerDialog("Guardando evolución...")
         spinner.show()
         QApplication.processEvents()
@@ -209,22 +212,20 @@ class DialogoConsulta(QDialog):
         conn = obtener_conexion()
         cursor = conn.cursor()
 
-        # Datos base
         hclin = self.datos_paciente["HCLIN"]
         codpac = self.datos_paciente["CODPAC"]
-        id_profesional = self.datos_paciente["ID_PROFESIONAL"]  
+        id_profesional = self.datos_paciente["ID_PROFESIONAL"]
         fecha_actual = datetime.now().date()
         hora_actual = datetime.now().strftime("%H:%M")
 
-        # Calcular SECUEN (máximo + 1 para este paciente)
+        # Calcular SECUEN y PROTOCOLO
         cursor.execute("SELECT ISNULL(MAX(SECUEN), 0) FROM dbo.AHISTCLIN WHERE CODPAC = ?", (codpac,))
         secuen = cursor.fetchone()[0] + 1
 
-        # Calcular PROTOCOLO (máximo + 1 en toda la tabla)
         cursor.execute("SELECT ISNULL(MAX(PROTOCOLO), 0) FROM dbo.AHISTCLIN")
         protocolo = cursor.fetchone()[0] + 1
 
-        # Insertar nueva evolución
+        # Insertar evolución
         cursor.execute("""
             INSERT INTO dbo.AHISTCLIN (HCLIN, FECHA, SECUEN, PROFES, EVOLUCION, HORA, PROTOCOLO, CODPAC)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -239,15 +240,18 @@ class DialogoConsulta(QDialog):
             codpac
         ))
 
+        # Marcar paciente como atendido en ACABPAC
+        cursor.execute("""
+            UPDATE dbo.ACABPAC
+            SET ATENDHC = 1
+            WHERE CODPAC = ? AND CAST(FEPACIENTE AS DATE) = CAST(? AS DATE)
+        """, (codpac, fecha_actual))
+
         conn.commit()
-
-        # Marcar el turno como atendido
-        # marcar_turno_atendido(codpac, fecha_actual, id_profesional)
-
         conn.close()
 
         QMessageBox.information(self, "Éxito", "Evolución guardada correctamente")
-        self.accept()  # Devuelve Accepted para que la tabla se actualice
+        self.accept()
 
     def abrir_vista_previa(self):
         spinner = SpinnerDialog("Abriendo vista previa...")
