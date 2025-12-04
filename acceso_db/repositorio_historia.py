@@ -399,3 +399,41 @@ def paciente_tiene_evolucion(codpac, fecha_turno):
     row = cursor.fetchone()
     conn.close()
     return row is not None
+
+def buscar_pacientes_triple_factor(nombre=None, apellido=None, dni=None):
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT TOP 50 p.CODPAC, p.NOMBRE, p.DOCUMENTO, p.FENAC,
+               (SELECT TOP 1 EVOLUCION 
+                FROM dbo.AHISTCLIN h 
+                WHERE h.CODPAC = p.CODPAC 
+                ORDER BY FECHA DESC, HORA DESC) AS EVOLUCION
+        FROM dbo.AHISTORPAC p
+        WHERE 1=1
+    """
+
+    params = []
+
+    # DNI exacto
+    if dni:
+        query += " AND p.DOCUMENTO = ?"
+        params.append(dni)
+
+    # Búsqueda parcial INSENSIBLE a mayúsculas
+    if nombre:
+        query += " AND UPPER(p.NOMBRE) LIKE UPPER(?)"
+        params.append(f"%{nombre}%")
+
+    if apellido:
+        query += " AND UPPER(p.NOMBRE) LIKE UPPER(?)"
+        params.append(f"%{apellido}%")
+
+    query += " ORDER BY p.NOMBRE"
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    cols = [col[0] for col in cursor.description]
+    conn.close()
+    return [dict(zip(cols, row)) for row in rows]

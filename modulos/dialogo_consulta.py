@@ -7,6 +7,7 @@ Created on Mon Jul 14 13:42:13 2025
 
 
 #modulos/dialogo_consulta.py
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QDialog, QTabWidget, QWidget, QVBoxLayout, QLabel, QPushButton,
     QHBoxLayout, QTextEdit, QMessageBox, QScrollArea
@@ -74,6 +75,8 @@ class DialogoConsulta(QDialog):
         layout.addLayout(botones_layout)
 
         self.setLayout(layout)
+
+        # self.setWindowState(Qt.WindowMaximized)
 
     def _init_tab_consulta(self):
         layout = QVBoxLayout()

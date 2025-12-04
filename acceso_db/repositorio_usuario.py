@@ -48,10 +48,19 @@ def obtener_lista_usuarios():
     cursor = conn.cursor()
 
     if MODO_CONEXION == "access":
-        query = "SELECT DISTINCT APELLIDO FROM dbo_AUSUARIOS WHERE APELLIDO IS NOT NULL ORDER BY APELLIDO"
+        query = """
+            SELECT DISTINCT APELLIDO 
+            FROM dbo_AUSUARIOS
+            WHERE APELLIDO IS NOT NULL AND ACTIVO = 1
+            ORDER BY APELLIDO
+        """
     else:
-        query = "SELECT DISTINCT u.APELLIDO FROM dbo.AUSUARIOS u WHERE u.APELLIDO IS NOT NULL ORDER BY u.APELLIDO"
-
+        query = """
+            SELECT DISTINCT APELLIDO
+            FROM dbo.AUSUARIOS
+            WHERE APELLIDO IS NOT NULL AND ACTIVO = 1
+            ORDER BY APELLIDO
+        """
     cursor.execute(query)
     resultados = [row[0].strip() for row in cursor.fetchall()]
     conn.close()
@@ -62,7 +71,11 @@ def obtener_lista_usuarios():
 def obtener_usuarios_con_codigo():
     conn = obtener_conexion()
     cursor = conn.cursor()
-    cursor.execute("SELECT CODIGO, APELLIDO FROM dbo.AUSUARIOS")
+    cursor.execute("""
+        SELECT CODIGO, APELLIDO
+        FROM dbo.AUSUARIOS
+        WHERE ACTIVO = 1
+    """)
     rows = cursor.fetchall()
     conn.close()
     return [(row.CODIGO, row.APELLIDO) for row in rows]

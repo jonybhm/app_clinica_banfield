@@ -31,3 +31,16 @@ QMenu {
 QMenu::item:selected {
     background-color: #d0d0d0;
 }
+QTableWidget {
+    background-color: #ffffff;
+    alternate-background-color: #f2f2f2;
+    gridline-color: #c0c0c0;
+    color: #202020;
+}
+
+QHeaderView::section {
+    background-color: #e0e0e0;
+    color: #202020;
+    padding: 4px;
+    border: 1px solid #c0c0c0;
+}

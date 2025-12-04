@@ -7,7 +7,7 @@ Created on Thu May 15 22:18:21 2025
 # modulos/historia_clinica.py
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
-    QDateEdit, QTableWidget, QTableWidgetItem, QMessageBox, QStackedLayout
+    QDateEdit, QTableWidget, QTableWidgetItem, QMessageBox, QStackedLayout, QHeaderView
 )
 from PyQt5.QtCore import QDate, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QTextCharFormat, QBrush, QColor
@@ -60,9 +60,33 @@ class PantallaHistoriaClinica(QWidget):
         self.stack_layout = QStackedLayout()
         self.layout.addLayout(self.stack_layout)
 
-        # Tabla de resultados
+        # --- CONTENEDOR PRINCIPAL (marca de agua + tabla centrada) ---
+        self.contenedor_resultados = QWidget()
+        self.fondo_layout = QStackedLayout(self.contenedor_resultados)
+
+        
+
+        # ---- TABLA centrada ----
         self.tabla = QTableWidget()
-        self.stack_layout.addWidget(self.tabla)
+        self.tabla.setMinimumWidth(1100)
+        header = self.tabla.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        header.setStretchLastSection(True)
+
+
+        self.tabla_container = QWidget()
+        tabla_layout = QHBoxLayout()
+        tabla_layout.addStretch()
+        tabla_layout.addWidget(self.tabla)
+        tabla_layout.addStretch()
+        self.tabla_container.setLayout(tabla_layout)
+
+        # capa frontal = tabla
+        self.fondo_layout.addWidget(self.tabla_container)
+
+        # añadir al stacked principal
+        self.stack_layout.addWidget(self.contenedor_resultados)
+
 
         # Imagen "no hay turnos"
         self.label_no_turnos = QLabel()
@@ -89,6 +113,7 @@ class PantallaHistoriaClinica(QWidget):
         shortcut_enter.activated.connect(self.buscar_turnos_ui)
 
         self.tabla.doubleClicked.connect(self.abrir_dialogo_consulta)
+
 
         
     def buscar_turnos_ui(self):
@@ -117,7 +142,7 @@ class PantallaHistoriaClinica(QWidget):
             self.stack_layout.setCurrentWidget(self.label_no_turnos)
             return
         else:
-            self.stack_layout.setCurrentWidget(self.tabla)
+            self.stack_layout.setCurrentWidget(self.contenedor_resultados)
 
         # Reiniciar tabla
         self.tabla.clear()
@@ -139,7 +164,8 @@ class PantallaHistoriaClinica(QWidget):
 
             recepcion_txt = fila.get("RECEPCION", "❌ FALTA")
             anulado = fila.get("ANULADO", 0)
-            hora_turno = fila.get("HORA", "-")
+            hora_bruta = fila.get("HORA")
+            hora_turno = hora_bruta if hora_bruta not in (None, "", "-", "0") else "SIN TURNO PROGRAMADO"
 
             # Ver si ya tiene evolución cargada
             tiene_evo = paciente_tiene_evolucion(codpac, fecha)
@@ -188,6 +214,20 @@ class PantallaHistoriaClinica(QWidget):
                 else:
                     tiempo_actual = self.timers[codpac]["tiempo"]
                     self.tabla.setItem(row_idx, 4, QTableWidgetItem(tiempo_actual))
+
+        # Ajustar ancho columnas
+        self.tabla.resizeColumnsToContents()
+        self.tabla.horizontalHeader().setStretchLastSection(False)
+        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+        # Ordenamiento por columna
+        self.tabla.setSortingEnabled(True)
+
+        # Ordenar H. Turno (columna 5)
+        self.tabla.sortItems(5, Qt.AscendingOrder)
+
+        self.tabla.setAlternatingRowColors(True)
+
 
         self.resaltar_dias_con_turnos()
 

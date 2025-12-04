@@ -89,6 +89,8 @@ class MainWindow(QMainWindow):
         else:
             self._aplicar_tema_claro()
 
+        self.showMaximized()
+
 
     def _crear_menu(self):
         # Mostrar spinner 
@@ -232,7 +234,8 @@ class HistoriaClinicaWindow(QMainWindow):
     def __init__(self, datos_usuario):
         super().__init__()
         self.setWindowTitle("Historia Clínica")
-        self.setGeometry(250, 150, 900, 600)
+        # self.setGeometry(250, 150, 900, 600)
+        self.showMaximized()
 
         widget = PantallaHistoriaClinica()
         widget.id_profesional = datos_usuario.get("CODMED") or 0
@@ -249,6 +252,7 @@ class HistoriaClinicaWindow(QMainWindow):
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
+        
 
 
 # Ventana secundaria para Pacientes
@@ -256,7 +260,8 @@ class PacientesWindow(QMainWindow):
     def __init__(self, datos_usuario):
         super().__init__()
         self.setWindowTitle("Pacientes")
-        self.setGeometry(250, 150, 900, 600)
+        # self.setGeometry(250, 150, 900, 600)
+        self.showMaximized()
 
         widget = PantallaPacientes(
             id_profesional=datos_usuario.get("CODMED") or 0,

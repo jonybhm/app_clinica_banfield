@@ -7,6 +7,7 @@ Created on Mon Jul 14 13:42:13 2025
 
 
 # modulos/dialogo_informes.py
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QListWidget, QMessageBox, QHBoxLayout
 from auxiliar.pdf_utiles import generar_pdf_informe
 from acceso_db.conexion import obtener_conexion
@@ -41,6 +42,8 @@ class DialogoInformes(QDialog):
         self.setLayout(layout)
 
         self.cargar_informes()
+
+        # self.setWindowState(Qt.WindowMaximized)
 
     def cargar_informes(self):
         conn = obtener_conexion()
