@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTabWidget, QComboBox, QPushBu
 from modulos.permisos_widget import PermisosWidget
 from modulos.datos_usuario_widget import DatosUsuarioWidget
 from acceso_db.repositorio_usuario import obtener_usuarios_con_codigo
-from auxiliar.widgets_personalizados import ComboBoxBuscador
+from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 
 class AdminUsuarios(QDialog):  
     def __init__(self, id_usuario, parent=None):

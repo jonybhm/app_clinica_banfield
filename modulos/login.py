@@ -8,7 +8,7 @@ Created on Wed May 21 21:19:31 2025
 # modulos/login.py
 from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox, QApplication
 from acceso_db.repositorio_usuario import login_usuario, obtener_lista_usuarios
-from auxiliar.widgets_personalizados import ComboBoxBuscador
+from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 from auxiliar.rutas import recurso_path
 
 class PantallaLogin(QDialog):

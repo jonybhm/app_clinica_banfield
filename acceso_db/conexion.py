@@ -4,6 +4,7 @@ Created on Wed May 21 19:17:19 2025
 
 @author: Jonathan
 """
+# acceso_db/conexion.py
 import pyodbc
 import acceso_db.config as config
 

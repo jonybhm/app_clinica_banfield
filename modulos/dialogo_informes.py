@@ -73,6 +73,24 @@ class DialogoInformes(QDialog):
             QMessageBox.warning(self, "Atención", "Seleccione un informe primero")
             return
 
-        informe = self.informes[idx]
-        archivo = generar_pdf_informe(informe, self.nombre_profesional)
-        os.startfile(archivo)
+        try:
+            informe = self.informes[idx]
+            archivo = generar_pdf_informe(informe, self.nombre_profesional)
+
+            if not os.path.exists(archivo):
+                raise FileNotFoundError(f"El archivo no se generó: {archivo}")
+
+            try:
+                os.startfile(archivo)
+            except Exception as e:
+                self.log_error(f"Error al abrir PDF: {e}")
+                QMessageBox.critical(self, "Error", f"No se pudo abrir el PDF.\n\n{e}")
+
+        except Exception as e:
+            self.log_error(f"Error en imprimir_informe: {e}")
+            QMessageBox.critical(self, "Error", f"Ocurrió un error inesperado:\n\n{e}")
+
+    def log_error(self, mensaje):
+        ruta_log = os.path.join(os.path.expanduser("~"), "icb_error_log.txt")
+        with open(ruta_log, "a", encoding="utf-8") as f:
+            f.write(mensaje + "\n")

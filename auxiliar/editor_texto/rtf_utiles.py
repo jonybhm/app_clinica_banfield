@@ -4,10 +4,14 @@ Created on Mon Jul 14 16:15:42 2025
 
 @author: Jonathan
 """
-
+#auxiliar/rtf_utiles.py
 import re
 
+import logging
+from PyQt5.QtWidgets import QTextEdit
 from striprtf.striprtf import rtf_to_text
+from PyQt5.QtGui import QTextDocument,QTextDocumentWriter
+from PyQt5.QtCore import QBuffer, QIODevice
 
 def limpiar_evolucion(rtf):
     print("\n[DEBUG] RTF ORIGINAL:")
@@ -33,3 +37,4 @@ def strip_rtf(rtf_text):
     clean = re.sub(r'[{}]', '', clean)               # elimina llaves
     clean = re.sub(r'\r?\n', ' ', clean)             # elimina saltos de línea
     return clean.strip()
+

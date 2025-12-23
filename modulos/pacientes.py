@@ -12,14 +12,14 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from acceso_db.repositorio_historia import obtener_datos_paciente_y_historial, buscar_pacientes, obtener_pacientes,buscar_pacientes_triple_factor
-from auxiliar.rtf_utiles import limpiar_evolucion
+from auxiliar.editor_texto.rtf_utiles import limpiar_evolucion
 from modulos.dialogo_consulta import DialogoConsulta
-from auxiliar.widgets_personalizados import ComboBoxBuscador
+from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtGui import QKeySequence
-from auxiliar.widgets_personalizados import formatear_fecha
+from auxiliar.widgets.widgets_personalizados import formatear_fecha
 
 class PantallaPacientes(QWidget):
     def __init__(self, id_profesional, nombre_profesional):

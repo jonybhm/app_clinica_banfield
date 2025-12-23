@@ -57,12 +57,20 @@ class MainWindow(QMainWindow):
         btn_pacientes.setFixedSize(250, 120)
         btn_pacientes.clicked.connect(self.abrir_pacientes)
 
+        btn_informes = QPushButton("Informes")
+        btn_informes.setIcon(QIcon(recurso_path("assets/icons/informes.png")))
+        btn_informes.setIconSize(pixmap.size())
+        btn_informes.setFixedSize(250, 120)
+        btn_informes.clicked.connect(self.abrir_informes)
+
         # Layout central
         botones_layout = QHBoxLayout()
         botones_layout.addStretch()
         botones_layout.addWidget(btn_historia)
-        botones_layout.addSpacing(50)
+        botones_layout.addSpacing(40)
         botones_layout.addWidget(btn_pacientes)
+        botones_layout.addSpacing(40)
+        botones_layout.addWidget(btn_informes)
         botones_layout.addStretch()
 
         layout = QVBoxLayout()
@@ -207,7 +215,13 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(1)
         
     
+    def abrir_informes(self):
+        spinner = SpinnerDialog("Cargando...")
+        spinner.show()
+        QApplication.processEvents()
 
+        self.informes_window = InformesWindow(self.datos_usuario)
+        self.informes_window.show()
    
     def abrir_historia_clinica(self):
         # Mostrar spinner 
@@ -267,6 +281,28 @@ class PacientesWindow(QMainWindow):
             id_profesional=datos_usuario.get("CODMED") or 0,
             nombre_profesional=datos_usuario["APELLIDO"]
         )
+
+        btn_volver = QPushButton("Volver al Menú Principal")
+        btn_volver.clicked.connect(self.close)
+
+        layout = QVBoxLayout()
+        layout.addWidget(widget)
+        layout.addWidget(btn_volver)
+
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+# Ventana secundaria para Informes
+class InformesWindow(QMainWindow):
+    def __init__(self, datos_usuario):
+        super().__init__()
+        self.setWindowTitle("Informes")
+        self.showMaximized()
+
+        from modulos.informes.pantalla_informes import PantallaInformes
+
+        widget = PantallaInformes()
 
         btn_volver = QPushButton("Volver al Menú Principal")
         btn_volver.clicked.connect(self.close)

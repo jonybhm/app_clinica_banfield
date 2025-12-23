@@ -38,4 +38,4 @@ def buscar_valor_en_bd(valor_busqueda):
     
 
 # USO:
-buscar_valor_en_bd("Eco-doppler Color")
+buscar_valor_en_bd("Ventana ecografica adecuada.")

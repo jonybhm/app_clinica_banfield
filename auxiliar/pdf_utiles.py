@@ -13,7 +13,7 @@ from reportlab.lib import colors
 from datetime import datetime
 import os
 import tempfile
-from auxiliar.rtf_utiles import limpiar_evolucion
+from auxiliar.editor_texto.rtf_utiles import limpiar_evolucion
 from reportlab.lib.units import mm
 from reportlab.platypus import HRFlowable
 from reportlab.lib.enums import TA_CENTER
@@ -209,5 +209,9 @@ def generar_pdf_informe(informe, nombre_profesional):
     if texto_limpio:
         elementos.append(Paragraph(texto_limpio.replace("\n", "<br/>"), estilo_courier))
 
-    doc.build(elementos)
+    try:
+        doc.build(elementos)
+    except Exception as e:
+        raise Exception(f"Error generando PDF del protocolo {protocolo}: {e}")
+    
     return os.path.abspath(archivo)

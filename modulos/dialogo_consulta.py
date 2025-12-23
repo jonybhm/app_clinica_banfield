@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout, QTextEdit, QMessageBox, QScrollArea
 )
 from datetime import datetime
-from auxiliar.rtf_utiles import limpiar_evolucion
+from auxiliar.editor_texto.rtf_utiles import limpiar_evolucion
 from acceso_db.repositorio_historia import (
     obtener_lista_diagnosticos,
     obtener_lista_motivos_consulta,
@@ -22,13 +22,15 @@ from acceso_db.repositorio_historia import (
     obtener_lista_derivaciones,
     marcar_turno_atendido
 )
-from auxiliar.widgets_personalizados import ComboBoxBuscador
+from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 from acceso_db.conexion import obtener_conexion
 import os
 from auxiliar.pdf_utiles import generar_pdf_historia
 from modulos.dialogo_informes import DialogoInformes
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
+from auxiliar.workers.base_task import BaseTask
+from auxiliar.workers.task_manager import TaskManager
 
 
 class DialogoConsulta(QDialog):
