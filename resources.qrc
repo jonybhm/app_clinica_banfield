@@ -1,0 +1,25 @@
+<RCC>
+  <qresource prefix="/">
+    <file>assets/svg/clone.svg</file>
+    <file>assets/svg/cross.svg</file>
+    <file>assets/svg/delete.svg</file>
+    <file>assets/svg/downarrow.svg</file>
+    <file>assets/svg/edit.svg</file>
+    <file>assets/svg/folder.svg</file>
+    <file>assets/svg/inform.svg</file>
+    <file>assets/svg/new.svg</file>
+    <file>assets/svg/save.svg</file>
+    <file>assets/svg/search.svg</file>    
+    <file>assets/svg/print.svg</file>
+    <file>assets/svg/medexam.svg</file>    
+    <file>assets/svg/home.svg</file>    
+    <file>assets/svg/login.svg</file>    
+    <file>assets/svg/logout.svg</file>    
+    <file>assets/svg/switchuser.svg</file>    
+    <file>assets/svg/light.svg</file>    
+    <file>assets/svg/night.svg</file>    
+    <file>assets/svg/themes.svg</file>    
+    <file>assets/svg/help.svg</file>    
+    <file>assets/svg/info.svg</file>    
+  </qresource>
+</RCC>

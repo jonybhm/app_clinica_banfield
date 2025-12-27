@@ -10,13 +10,13 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QApplication, QMenuBar, QMenu, QAction, QMessageBox
 )
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtCore import Qt, QSettings
+from PyQt5.QtCore import Qt, QSettings, QSize
 from modulos.inicio import PantallaInicio
-from modulos.historia_clinica import PantallaHistoriaClinica
-from modulos.login import PantallaLogin
+from modulos.turnos.historia_clinica import PantallaHistoriaClinica
+from modulos.login.login import PantallaLogin
 from acceso_db.permisos_repo import tiene_permiso_admin
-from modulos.admin_usuarios import AdminUsuarios
-from modulos.pacientes import PantallaPacientes  
+from modulos.usuarios.admin_usuarios import AdminUsuarios
+from modulos.pacientes.pacientes import PantallaPacientes  
 from PyQt5.QtCore import pyqtSignal
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
@@ -257,6 +257,8 @@ class HistoriaClinicaWindow(QMainWindow):
         widget.buscar_turnos_ui()
 
         btn_volver = QPushButton("Volver al Menú Principal")
+        btn_volver.setIcon(QIcon(":/assets/svg/home.svg"))
+        btn_volver.setIconSize(QSize(20, 20))
         btn_volver.clicked.connect(self.close)
 
         layout = QVBoxLayout()
@@ -283,6 +285,8 @@ class PacientesWindow(QMainWindow):
         )
 
         btn_volver = QPushButton("Volver al Menú Principal")
+        btn_volver.setIcon(QIcon(":/assets/svg/home.svg"))
+        btn_volver.setIconSize(QSize(20, 20))
         btn_volver.clicked.connect(self.close)
 
         layout = QVBoxLayout()
@@ -297,14 +301,17 @@ class PacientesWindow(QMainWindow):
 class InformesWindow(QMainWindow):
     def __init__(self, datos_usuario):
         super().__init__()
+        self.datos_usuario = datos_usuario  
+
         self.setWindowTitle("Informes")
         self.showMaximized()
 
         from modulos.informes.pantalla_informes import PantallaInformes
-
-        widget = PantallaInformes()
+        widget = PantallaInformes(self.datos_usuario)
 
         btn_volver = QPushButton("Volver al Menú Principal")
+        btn_volver.setIcon(QIcon(":/assets/svg/home.svg"))
+        btn_volver.setIconSize(QSize(20, 20))
         btn_volver.clicked.connect(self.close)
 
         layout = QVBoxLayout()

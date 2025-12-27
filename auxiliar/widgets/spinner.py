@@ -1,33 +1,45 @@
 # auxiliar/widgets/spinner.py
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel
-from PyQt5.QtGui import QMovie
-from PyQt5.QtCore import Qt
-from auxiliar.rutas import recurso_path
-class SpinnerDialog(QDialog):
-    def __init__(self, mensaje="Cargando..."):
-        super().__init__()
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QPainter, QPen
 
-        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+class Spinner(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.angle = 0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.rotate)
+        self.timer.start(16)  # ~60fps
+        self.setFixedSize(50, 50)
+
+    def rotate(self):
+        self.angle = (self.angle + 5) % 360
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        pen = QPen(Qt.blue, 4)
+        painter.setPen(pen)
+
+        rect = self.rect().adjusted(6, 6, -6, -6)
+        painter.drawArc(rect, self.angle * 16, 270 * 16)
+
+class SpinnerDialog(QWidget):
+    def __init__(self, texto="Cargando..."):
+        super().__init__()
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setModal(True)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setAlignment(Qt.AlignCenter)
 
-        self.label_spinner = QLabel(self)
-        self.label_spinner.setAlignment(Qt.AlignCenter)
-        self.label_spinner.setStyleSheet("background: transparent;")
+        self.spinner = Spinner()
+        self.label = QLabel(texto)
+        self.label.setStyleSheet("color: #4285F4; font-size: 14px;")
 
-        self.movie = QMovie(recurso_path("assets/spinner/spinner.gif"))
-        if not self.movie.isValid():
-            self.label_spinner.setText("⏳") 
-        else:
-            self.label_spinner.setMovie(self.movie)
-            self.movie.start()
-   
-        self.label_texto = QLabel(mensaje, self)
-        self.label_texto.setAlignment(Qt.AlignCenter)
-        self.label_texto.setStyleSheet("color: white; font-size: 14px;")
+        layout.addWidget(self.spinner, alignment=Qt.AlignCenter)
+        layout.addWidget(self.label, alignment=Qt.AlignCenter)
 
-        layout.addWidget(self.label_spinner)
-        layout.addWidget(self.label_texto)
+        self.setFixedSize(150, 150)

@@ -26,11 +26,13 @@ from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 from acceso_db.conexion import obtener_conexion
 import os
 from auxiliar.pdf_utiles import generar_pdf_historia
-from modulos.dialogo_informes import DialogoInformes
+from workers.editor_rtf.abrir_pdf_worker import AbrirPdfWorker
+from workers.informes.informes_previos_worker import InformesPreviosWorker
+from modulos.informes.dialogo_informes import DialogoInformes
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
-from auxiliar.workers.base_task import BaseTask
-from auxiliar.workers.task_manager import TaskManager
+from workers.base.base_task import BaseTask
+from workers.base.task_manager import TaskManager
 
 
 class DialogoConsulta(QDialog):
@@ -203,74 +205,66 @@ class DialogoConsulta(QDialog):
             self.guardar_evolucion()
 
     def guardar_evolucion(self):
-        spinner = SpinnerDialog("Guardando evolución...")
-        spinner.show()
-        QApplication.processEvents()
+        reply = QMessageBox.question(
+            self, "Confirmación", "¿Desea guardar esta evolución?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
 
-        texto_diag = self.cmb_diagnostico.currentText()
-        codigo_diag = None
-        if "(" in texto_diag and texto_diag.endswith(")"):
-            codigo_diag = texto_diag.split("(")[-1].rstrip(")")
+        texto = self.txt_evolucion.toPlainText()
 
-        texto_final = self.txt_evolucion.toPlainText()
+        from workers.evolucion.guardar_evolucion_worker import GuardarEvolucionWorker
 
-        conn = obtener_conexion()
-        cursor = conn.cursor()
+        task = GuardarEvolucionWorker(self.datos_paciente, texto)
+        task.signals.finished.connect(self._guardar_ok)
+        task.signals.error.connect(self._guardar_error)
 
-        hclin = self.datos_paciente["HCLIN"]
-        codpac = self.datos_paciente["CODPAC"]
-        id_profesional = self.datos_paciente["ID_PROFESIONAL"]
-        fecha_actual = datetime.now().date()
-        hora_actual = datetime.now().strftime("%H:%M")
+        TaskManager.instance().run(task, "Guardando evolución...")
 
-        # Calcular SECUEN y PROTOCOLO
-        cursor.execute("SELECT ISNULL(MAX(SECUEN), 0) FROM dbo.AHISTCLIN WHERE CODPAC = ?", (codpac,))
-        secuen = cursor.fetchone()[0] + 1
-
-        cursor.execute("SELECT ISNULL(MAX(PROTOCOLO), 0) FROM dbo.AHISTCLIN")
-        protocolo = cursor.fetchone()[0] + 1
-
-        # Insertar evolución
-        cursor.execute("""
-            INSERT INTO dbo.AHISTCLIN (HCLIN, FECHA, SECUEN, PROFES, EVOLUCION, HORA, PROTOCOLO, CODPAC)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            hclin,
-            fecha_actual,
-            secuen,
-            id_profesional,
-            texto_final,
-            hora_actual,
-            protocolo,
-            codpac
-        ))
-
-        # Marcar paciente como atendido en ACABPAC
-        cursor.execute("""
-            UPDATE dbo.ACABPAC
-            SET ATENDHC = 1
-            WHERE CODPAC = ? AND CAST(FEPACIENTE AS DATE) = CAST(? AS DATE)
-        """, (codpac, fecha_actual))
-
-        conn.commit()
-        conn.close()
-
+    def _guardar_ok(self, _):
         QMessageBox.information(self, "Éxito", "Evolución guardada correctamente")
         self.accept()
 
-    def abrir_vista_previa(self):
-        spinner = SpinnerDialog("Abriendo vista previa...")
-        spinner.show()
-        QApplication.processEvents()
+    def _guardar_error(self, error):
+        QMessageBox.critical(self, "Error", str(error))
 
-        archivo = generar_pdf_historia(self.datos_paciente, self.historial)       
-        os.startfile(archivo)  
+
+
+    def abrir_vista_previa(self):
+        task = AbrirPdfWorker(self.datos_paciente, self.historial)
+        TaskManager.instance().run(task, "Generando PDF...")
+
 
     def abrir_informes(self):
-        spinner = SpinnerDialog("Abriendo informes...")
+        spinner = SpinnerDialog("Cargando informes...")
         spinner.show()
         QApplication.processEvents()
 
         codpac = self.datos_paciente["CODPAC"]
-        dlg = DialogoInformes(codpac, self.datos_paciente["PROFESIONAL"], self)
-        dlg.exec_()
+
+        task = InformesPreviosWorker(codpac)
+        task.signals.finished.connect(self._mostrar_informes)
+        task.signals.error.connect(self._error_informes)
+
+        TaskManager.instance().run(task, "Cargando informes...")
+
+    def _mostrar_informes(self, informes):
+        try:
+            if not informes:
+                QMessageBox.information(self, "Sin informes", "El paciente no tiene informes.")
+                return
+
+            dlg = DialogoInformes(
+                informes=informes,
+                nombre_profesional=self.datos_paciente["PROFESIONAL"],
+                parent=self
+            )
+            dlg.exec_()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+
+
+    def _error_informes(self, error):
+        QMessageBox.critical(self, "Error al cargar informes", error)

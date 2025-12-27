@@ -8,8 +8,9 @@ Created on Thu May 15 22:18:21 2025
 import auxiliar.debug.logger  # activa logging y excepthook
 import logging
 import sys, time, os, ctypes
-from auxiliar.workers.task_manager import TaskManager  
-from auxiliar.workers.base_task import BaseTask  
+from workers.base.task_manager import TaskManager  
+from workers.base.base_task import BaseTask  
+import resources_rc
 
 logging.info("Iniciando aplicación...")
 
@@ -29,7 +30,7 @@ from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 from main_window import MainWindow
-from modulos.login import PantallaLogin
+from modulos.login.login import PantallaLogin
 from auxiliar.rutas import recurso_path
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from acceso_db.utilidades import obtener_hora_servidor, sincronizar_hora_windows

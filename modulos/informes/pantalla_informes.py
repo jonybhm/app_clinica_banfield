@@ -5,9 +5,9 @@ from PyQt5.QtCore import Qt
 from auxiliar.rutas import recurso_path
 
 class PantallaInformes(QWidget):
-    def __init__(self):
+    def __init__(self, datos_usuario):
         super().__init__()
-
+        self.datos_usuario = datos_usuario
         layout = QVBoxLayout(self)
 
         self.setWindowTitle("Gestión de Informes")
@@ -45,5 +45,5 @@ class PantallaInformes(QWidget):
 
     def usar_modelo(self):
         from modulos.informes.dialogo_usar_modelo import DialogoUsarModelo
-        dlg = DialogoUsarModelo(self)
+        dlg = DialogoUsarModelo(self.datos_usuario, self)
         dlg.exec_()

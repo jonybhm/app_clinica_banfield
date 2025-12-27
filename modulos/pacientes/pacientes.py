@@ -10,15 +10,15 @@ from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,QHeaderView,
     QTableWidget, QTableWidgetItem, QLineEdit, QMessageBox
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 from acceso_db.repositorio_historia import obtener_datos_paciente_y_historial, buscar_pacientes, obtener_pacientes,buscar_pacientes_triple_factor
 from auxiliar.editor_texto.rtf_utiles import limpiar_evolucion
-from modulos.dialogo_consulta import DialogoConsulta
+from modulos.evolucion.dialogo_consulta import DialogoConsulta
 from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QShortcut
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QKeySequence, QIcon
 from auxiliar.widgets.widgets_personalizados import formatear_fecha
 
 class PantallaPacientes(QWidget):
@@ -50,6 +50,8 @@ class PantallaPacientes(QWidget):
         buscador_layout.addWidget(self.input_apellido)
 
         self.btn_buscar = QPushButton("Buscar")
+        self.btn_buscar.setIcon(QIcon(":/assets/svg/search.svg"))
+        self.btn_buscar.setIconSize(QSize(20, 20))
         self.btn_buscar.clicked.connect(self.buscar_paciente_ui)
         buscador_layout.addWidget(self.btn_buscar)
 
@@ -73,6 +75,8 @@ class PantallaPacientes(QWidget):
 
         # Abrir historial
         self.btn_historial = QPushButton("Ver Detalle del Paciente y Evolucionar")
+        self.btn_historial.setIcon(QIcon(":/assets/svg/cross.svg"))
+        self.btn_historial.setIconSize(QSize(20, 20))
         self.btn_historial.clicked.connect(self.abrir_dialogo_consulta)
         self.layout.addWidget(self.btn_historial)
 

@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout
 from acceso_db.repositorio_usuario import login_usuario, obtener_lista_usuarios
 from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 from auxiliar.rutas import recurso_path
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QSize
 
 class PantallaLogin(QDialog):
     def __init__(self):
@@ -31,6 +33,8 @@ class PantallaLogin(QDialog):
         layout.addWidget(self.clave_input)
 
         boton = QPushButton("Ingresar")
+        boton.setIcon(QIcon(":/assets/svg/login.svg"))
+        boton.setIconSize(QSize(20, 20))
         boton.clicked.connect(self.validar_login)
         layout.addWidget(boton)
 

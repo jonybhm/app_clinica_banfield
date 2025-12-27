@@ -18,4 +18,7 @@ class BaseTask(QRunnable):
             result = self.fn(*self.args, **self.kwargs)
             self.signals.finished.emit(result)
         except Exception as e:
+            print("❌ ERROR EN TASK:", e)
+            import traceback
+            traceback.print_exc()
             self.signals.error.emit(str(e))

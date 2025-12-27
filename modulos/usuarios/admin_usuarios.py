@@ -7,8 +7,8 @@ Created on Thu Aug 19 19:26:31 2025
 
 # modulos/admin_usuarios.py
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTabWidget, QComboBox, QPushButton, QLabel
-from modulos.permisos_widget import PermisosWidget
-from modulos.datos_usuario_widget import DatosUsuarioWidget
+from modulos.usuarios.permisos_widget import PermisosWidget
+from modulos.usuarios.datos_usuario_widget import DatosUsuarioWidget
 from acceso_db.repositorio_usuario import obtener_usuarios_con_codigo
 from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 

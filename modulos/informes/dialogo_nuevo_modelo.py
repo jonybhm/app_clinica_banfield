@@ -1,8 +1,9 @@
 # modulos/informes/dialogo_nuevo_modelo.py
 import logging
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
+    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
     QMessageBox, QListWidget, QInputDialog, QLineEdit, QListWidgetItem, 
 )
 from acceso_db.conexion import obtener_conexion
@@ -38,7 +39,7 @@ class DialogoNuevoModelo(QDialog):
         col_lista = QVBoxLayout()
 
         self.buscador = QLineEdit()
-        self.buscador.setPlaceholderText("🔍 Buscar modelo...")
+        self.buscador.setPlaceholderText("Buscar modelo...")
         self.buscador.textChanged.connect(self.filtrar_lista)
 
         self.lista = QListWidget()
@@ -51,9 +52,13 @@ class DialogoNuevoModelo(QDialog):
         # ---------------- Botones CRUD ----------------
         col_botones = QVBoxLayout()
 
-        btn_nuevo = QPushButton("💾 Crear nuevo modelo")
+        btn_nuevo = QPushButton("Crear nuevo modelo")
+        btn_nuevo.setIcon(QIcon(":/assets/svg/new.svg"))
+        btn_nuevo.setIconSize(QSize(20, 20))
         # btn_cargar = QPushButton("👁️‍🗨️ Vista previa")
-        btn_eliminar = QPushButton("🗑️ Eliminar modelo")
+        btn_eliminar = QPushButton("Eliminar modelo")
+        btn_eliminar.setIcon(QIcon(":/assets/svg/delete.svg"))
+        btn_eliminar.setIconSize(QSize(20, 20))
 
         for b in (btn_nuevo, btn_eliminar):
             b.setFixedWidth(180)
@@ -80,8 +85,13 @@ class DialogoNuevoModelo(QDialog):
         # ---------------- Acciones ----------------
         col_acciones = QVBoxLayout()
 
-        btn_clonar = QPushButton("📑 Clonar y Editar modelo")
-        btn_modificar = QPushButton("📝 Modificar modelo")
+        btn_clonar = QPushButton("Clonar y Editar modelo")
+        btn_clonar.setIcon(QIcon(":/assets/svg/clone.svg"))
+        btn_clonar.setIconSize(QSize(20, 20))
+
+        btn_modificar = QPushButton("Modificar modelo")
+        btn_modificar.setIcon(QIcon(":/assets/svg/edit.svg"))
+        btn_modificar.setIconSize(QSize(20, 20))
 
         btn_clonar.setFixedWidth(180)
         btn_modificar.setFixedWidth(180)
