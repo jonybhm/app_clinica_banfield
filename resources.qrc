@@ -21,5 +21,6 @@
     <file>assets/svg/themes.svg</file>    
     <file>assets/svg/help.svg</file>    
     <file>assets/svg/info.svg</file>    
+    <file>assets/svg/exit.svg</file>    
   </qresource>
 </RCC>

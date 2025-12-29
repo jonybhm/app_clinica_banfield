@@ -14,7 +14,7 @@ from PyQt5.QtCore import Qt, QSettings, QSize
 from modulos.inicio import PantallaInicio
 from modulos.turnos.historia_clinica import PantallaHistoriaClinica
 from modulos.login.login import PantallaLogin
-from acceso_db.permisos_repo import tiene_permiso_admin
+from acceso_db.repositorios.permisos_repo import tiene_permiso_admin
 from modulos.usuarios.admin_usuarios import AdminUsuarios
 from modulos.pacientes.pacientes import PantallaPacientes  
 from PyQt5.QtCore import pyqtSignal

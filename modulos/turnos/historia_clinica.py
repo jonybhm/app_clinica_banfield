@@ -15,7 +15,7 @@ import os, datetime
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from auxiliar.rutas import recurso_path
-from acceso_db.repositorio_historia import buscar_turnos, obtener_dias_con_turnos, marcar_turno_atendido,paciente_tiene_evolucion
+from acceso_db.repositorios.repositorio_historia import buscar_turnos, obtener_dias_con_turnos, marcar_turno_atendido,paciente_tiene_evolucion
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtGui import QKeySequence
 
@@ -68,13 +68,10 @@ class PantallaHistoriaClinica(QWidget):
         self.stack_layout = QStackedLayout()
         self.layout.addLayout(self.stack_layout)
 
-        # --- CONTENEDOR PRINCIPAL (marca de agua + tabla centrada) ---
         self.contenedor_resultados = QWidget()
         self.fondo_layout = QStackedLayout(self.contenedor_resultados)
 
         
-
-        # ---- TABLA centrada ----
         self.tabla = QTableWidget()
         self.tabla.setMinimumWidth(1100)
         header = self.tabla.horizontalHeader()
@@ -89,18 +86,15 @@ class PantallaHistoriaClinica(QWidget):
         tabla_layout.addStretch()
         self.tabla_container.setLayout(tabla_layout)
 
-        # capa frontal = tabla
+ 
         self.fondo_layout.addWidget(self.tabla_container)
 
-        # añadir al stacked principal
+
         self.stack_layout.addWidget(self.contenedor_resultados)
 
-
-        # Imagen "no hay turnos"
         self.label_no_turnos = QLabel()
         self.label_no_turnos.setAlignment(Qt.AlignCenter)
-        img_path = os.path.join(os.path.dirname(__file__), "../assets/imagenes/no_turnos.png")
-        img_path = recurso_path(img_path)
+        img_path = recurso_path("assets/imagenes/no_turnos.png")
         
         if os.path.exists(img_path):
             self.label_no_turnos.setPixmap(QPixmap(img_path).scaledToWidth(300, Qt.SmoothTransformation))
@@ -108,7 +102,6 @@ class PantallaHistoriaClinica(QWidget):
             self.label_no_turnos.setText("No hay turnos en esta fecha.")
         self.stack_layout.addWidget(self.label_no_turnos)
 
-        # Ver Detalle del Paciente
         btn_nueva = QPushButton("Ver Detalle del Paciente y Evolucionar")
         btn_nueva.setIcon(QIcon(":/assets/svg/cross.svg"))
         btn_nueva.setIconSize(QSize(20, 20))
@@ -118,7 +111,6 @@ class PantallaHistoriaClinica(QWidget):
         # Diccionario de timers
         self.timers = {}
         
-        # Enter y doble click
         shortcut_enter = QShortcut(QKeySequence(Qt.Key_Return), self)
         shortcut_enter.activated.connect(self.buscar_turnos_ui)
 
@@ -174,6 +166,7 @@ class PantallaHistoriaClinica(QWidget):
             row = self.tabla.rowCount()
             self.tabla.insertRow(row)
 
+            atendido = str(fila.get("ATENDHC", "0")) == "1"
             valores = [
                 nombre,
                 fila.get("EDAD", ""),
@@ -181,8 +174,11 @@ class PantallaHistoriaClinica(QWidget):
                 recepcion_txt,
                 "",
                 hora_turno,
-                fila.get("PROFESIONAL", "")
+                self.nombre_profesional
             ]
+            estado = "✔️ ATENDIDO" if atendido or tiene_evo else "❌ FALTA ATENDER"
+            self.tabla.setItem(row, 7, QTableWidgetItem(estado))
+            
 
             for col, val in enumerate(valores):
                 item = QTableWidgetItem(str(val))
@@ -190,17 +186,13 @@ class PantallaHistoriaClinica(QWidget):
                     item.setData(Qt.UserRole, codpac)
                 self.tabla.setItem(row, col, item)
 
-            # Estado atención
-            estado = "✔️ ATENDIDO" if fila.get("ATENDHC") or tiene_evo else "❌ FALTA ATENDER"
-            self.tabla.setItem(row, 7, QTableWidgetItem(estado))
+ 
 
-            # Colorear anulados
             if anulado == 1:
                 for c in range(self.tabla.columnCount()):
                     self.tabla.item(row, c).setForeground(QBrush(QColor("#888888")))
                     self.tabla.item(row, c).setBackground(QBrush(QColor("#f5f5f5")))
 
-            # Temporizador
             if fecha == fecha_hoy and "✔️" in recepcion_txt and not tiene_evo and anulado == 0:
                 if codpac not in self.timers:
                     self.iniciar_temporizador(row, codpac, fila.get("HORAREC"))

@@ -58,7 +58,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
         elif recepcion:
             recepcion_txt = f"✔️ {hora_recep_fmt}"
         else:
-            recepcion_txt = "❌ NO RECEPCIONADO"
+            recepcion_txt = "❌ NO RECEPCION."
 
         sexo_txt = "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-"
 

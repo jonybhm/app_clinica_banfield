@@ -7,7 +7,8 @@ Created on Mon Jul 14 13:42:13 2025
 
 
 # modulos/dialogo_informes.py
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QListWidget, QMessageBox, QHBoxLayout
 from auxiliar.pdf_utiles import generar_pdf_informe
 from acceso_db.conexion import obtener_conexion
@@ -33,17 +34,20 @@ class DialogoInformes(QDialog):
 
         btn_layout = QHBoxLayout()
         self.btn_ver = QPushButton("Imprimir Informe Seleccionado")
+        self.btn_ver.setIcon(QIcon(":/assets/svg/print.svg"))
+        self.btn_ver.setIconSize(QSize(20, 20))
         self.btn_ver.clicked.connect(self.imprimir_informe)
         btn_layout.addWidget(self.btn_ver)
 
-        self.btn_cerrar = QPushButton("Cerrar")
+        self.btn_cerrar = QPushButton("Salir")
+        self.btn_cerrar.setIcon(QIcon(":/assets/svg/exit.svg"))
+        self.btn_cerrar.setIconSize(QSize(20, 20))
         self.btn_cerrar.clicked.connect(self.close)
         btn_layout.addWidget(self.btn_cerrar)
 
         layout.addLayout(btn_layout)
         self.setLayout(layout)
 
-        # ✅ CORRECTO
         self._mostrar_informes(self.informes)
 
 

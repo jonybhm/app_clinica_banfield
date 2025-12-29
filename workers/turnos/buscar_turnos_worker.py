@@ -1,24 +1,34 @@
 # auxiliar/workers/buscar_turnos_worker.py
 from workers.base.base_task import BaseTask
-from acceso_db.repositorio_historia import buscar_turnos, paciente_tiene_evolucion
+from acceso_db.repositorios.repositorio_historia import buscar_turnos, paciente_tiene_evolucion
 
 def _buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
     turnos = buscar_turnos(fecha, estado, id_profesional, nombre_profesional)
 
-    if estado == "PENDIENTE":
-        turnos = [
-            t for t in turnos
-            if "✔️" in t.get("RECEPCION", "")
-            and t.get("ATENDHC", 0) == 0
-            and t.get("ANULADO", 0) == 0
-        ]
-    elif estado == "ATENDIDO":
-        turnos = [t for t in turnos if t.get("ATENDHC", 0) == 1]
+    resultado = []
 
     for t in turnos:
+        atendido = t.get("ATENDHC", 0) == 1
+        anulado = t.get("ANULADO", 0) == 1
+        tiene_evo = paciente_tiene_evolucion(t.get("CODPAC"), fecha)
+
+        if estado == "PENDIENTE":
+            if not atendido and not tiene_evo and not anulado:
+                resultado.append(t)
+
+        elif estado == "ATENDIDO":
+            if atendido or tiene_evo:
+                resultado.append(t)
+
+        else:  # TODOS
+            resultado.append(t)
+
+    # Agregamos flag reutilizable
+    for t in resultado:
         t["TIENE_EVOLUCION"] = paciente_tiene_evolucion(t.get("CODPAC"), fecha)
 
-    return turnos
+    return resultado
+
 
 
 class BuscarTurnosWorker(BaseTask):

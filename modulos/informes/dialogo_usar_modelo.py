@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 )
 
 from acceso_db.conexion import obtener_conexion
-from acceso_db.repositorio_historia import buscar_pacientes_triple_factor
+from acceso_db.repositorios.repositorio_historia import buscar_pacientes_triple_factor
 
 from auxiliar.editor_texto.editor_richtext import EditorTextoEnriquecido
 from auxiliar.editor_texto.editor_externo import editar_rtf_con_libreoffice
@@ -20,7 +20,7 @@ from workers.informes.informes_previos_worker import InformesPreviosWorker
 from modulos.informes.dialogo_informes import DialogoInformes
 from workers.base.base_task import BaseTask
 from workers.base.task_manager import TaskManager
-from workers.pacientes.pacientes_worker import buscar_pacientes_task 
+from workers.pacientes.pacientes_worker import BuscarPacientesWorker 
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class DialogoUsarModelo(QDialog):
         self.setWindowTitle("Informes de Pacientes")
         self.resize(1400, 800)
 
-        # Habilitar minimizar / maximizar
+       
         self.setWindowFlags(
             self.windowFlags()
             | Qt.WindowMinimizeButtonHint
@@ -47,7 +47,6 @@ class DialogoUsarModelo(QDialog):
         layout = QHBoxLayout(self)
         layout.setSpacing(20)
 
-        # Pacientes
         col_pac = QVBoxLayout()
         col_pac.addWidget(QLabel("Paciente"))
 
@@ -72,7 +71,6 @@ class DialogoUsarModelo(QDialog):
         col_pac.addWidget(btn_buscar_pac)
         col_pac.addWidget(self.lista_pacientes)
 
-        # Modelos
         col_modelos = QVBoxLayout()
         col_modelos.addWidget(QLabel("Modelos"))
 
@@ -86,7 +84,6 @@ class DialogoUsarModelo(QDialog):
         col_modelos.addWidget(self.buscar_modelo)
         col_modelos.addWidget(self.lista_modelos)
 
-        # Vista previa
         col_preview = QVBoxLayout()
         col_preview.addWidget(QLabel("Vista previa"))
 
@@ -107,16 +104,15 @@ class DialogoUsarModelo(QDialog):
         self.editor.setReadOnly(True)
         col_preview.addWidget(self.editor)
 
-        # Acciones
         col_acciones = QVBoxLayout()
 
-        self.btn_editar = QPushButton("Editar informe")
+        self.btn_editar = QPushButton("Escribir informe")
         self.btn_editar.setIcon(QIcon(":/assets/svg/inform.svg"))
         self.btn_editar.setIconSize(QSize(20, 20))
         self.btn_guardar = QPushButton("Guardar informe")
         self.btn_guardar.setIcon(QIcon(":/assets/svg/save.svg"))
         self.btn_guardar.setIconSize(QSize(20, 20))
-        self.btn_historial = QPushButton("Informes anteriores")
+        self.btn_historial = QPushButton("Historial informes")
         self.btn_historial.setIcon(QIcon(":/assets/svg/folder.svg"))
         self.btn_historial.setIconSize(QSize(20, 20))
 
@@ -136,7 +132,6 @@ class DialogoUsarModelo(QDialog):
         col_acciones.addWidget(self.btn_historial)
         col_acciones.addStretch()
 
-        # Layout final
         layout.addLayout(col_pac, 2)
         layout.addLayout(col_modelos, 2)
         layout.addLayout(col_preview, 4)
@@ -145,19 +140,16 @@ class DialogoUsarModelo(QDialog):
         self.showMaximized()
 
 
-
-    # Pacientes
-
-
     def buscar_paciente(self):
-        task = BaseTask(
-            buscar_pacientes_task,
-            self.pac_dni.text(),
-            self.pac_nombre.text(),
-            self.pac_apellido.text()
-        )
 
+        dni = self.pac_dni.text()
+        nombre = self.pac_nombre.text()
+        apellido = self.pac_apellido.text()
+
+        task = BuscarPacientesWorker(dni, nombre, apellido)
         task.signals.finished.connect(self._mostrar_pacientes)
+        task.signals.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
+
         TaskManager.instance().run(task, "Buscando pacientes...")
         
     def _mostrar_pacientes(self, resultados):
@@ -177,9 +169,6 @@ class DialogoUsarModelo(QDialog):
         self.btn_editar.setEnabled(True)
         self.btn_historial.setEnabled(True)
 
-
-
-    # Modelos
 
 
     def cargar_modelos(self):
@@ -220,7 +209,7 @@ class DialogoUsarModelo(QDialog):
         self.editor.setHtml(html)
         self._actualizar_estado_botones()
 
-    # Acciones
+
 
 
     def editar_informe(self):
@@ -279,7 +268,7 @@ class DialogoUsarModelo(QDialog):
 
     def _mostrar_informes(self, informes):
         try:
-            print("📥 _mostrar_informes llamado")
+            print("_mostrar_informes llamado")
             print("Tipo:", type(informes))
             print("Cantidad:", len(informes) if informes else "None")
 
@@ -293,13 +282,13 @@ class DialogoUsarModelo(QDialog):
                 parent=self
             )
 
-            print("🟢 Abriendo diálogo...")
+            print("Abriendo diálogo...")
             dialogo.exec_()
-            print("🟢 Diálogo cerrado")
+            print("Diálogo cerrado")
 
         except Exception as e:
             import traceback
-            print("❌ ERROR EN _mostrar_informes")
+            print("ERROR EN _mostrar_informes")
             traceback.print_exc()
             QMessageBox.critical(self, "Error", str(e))
     

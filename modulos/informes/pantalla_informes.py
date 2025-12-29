@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import Qt
 from auxiliar.rutas import recurso_path
-
+from acceso_db.repositorios.permisos_repo import tiene_permiso_editar_informes
 class PantallaInformes(QWidget):
     def __init__(self, datos_usuario):
         super().__init__()
@@ -18,25 +18,36 @@ class PantallaInformes(QWidget):
         logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(logo)
 
+        btn_usar = QPushButton("Informes Pacientes")
+        btn_usar.setIcon(QIcon(recurso_path("assets/icons/editar.png")))
+        btn_usar.setIconSize(pixmap.size())
+        btn_usar.setFixedSize(300, 120)
+
         btn_nuevo = QPushButton("Crear/Editar Modelo Informe")
         btn_nuevo.setIcon(QIcon(recurso_path("assets/icons/nuevo.png")))
         btn_nuevo.setIconSize(pixmap.size())
         btn_nuevo.setFixedSize(300, 120)
 
-        btn_usar = QPushButton("Informes Pacientes")
-        btn_usar.setIcon(QIcon(recurso_path("assets/icons/editar.png")))
-        btn_usar.setIconSize(pixmap.size())
-        btn_usar.setFixedSize(300, 120)
+        codigo_usuario = self.datos_usuario.get("CODIGO")
+
+        puede_editar = tiene_permiso_editar_informes(codigo_usuario)
+
+        if not puede_editar:
+            btn_nuevo.setEnabled(False)
+            btn_nuevo.setToolTip("No tiene permisos para editar modelos de informe")
+
+        
 
         btn_nuevo.clicked.connect(self.crear_modelo)
         btn_usar.clicked.connect(self.usar_modelo)
 
         layout.setAlignment(Qt.AlignHCenter)
         layout.addStretch()
-        layout.addWidget(btn_nuevo, alignment=Qt.AlignHCenter)
-        layout.addSpacing(20)
         layout.addWidget(btn_usar, alignment=Qt.AlignHCenter)
+        layout.addSpacing(20)
+        layout.addWidget(btn_nuevo, alignment=Qt.AlignHCenter)
         layout.addStretch()
+
 
     def crear_modelo(self):
         from modulos.informes.dialogo_nuevo_modelo import DialogoNuevoModelo
@@ -47,3 +58,4 @@ class PantallaInformes(QWidget):
         from modulos.informes.dialogo_usar_modelo import DialogoUsarModelo
         dlg = DialogoUsarModelo(self.datos_usuario, self)
         dlg.exec_()
+

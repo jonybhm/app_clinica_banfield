@@ -9,7 +9,7 @@ class Spinner(QWidget):
         self.angle = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.rotate)
-        self.timer.start(16)  # ~60fps
+        self.timer.start(16)
         self.setFixedSize(50, 50)
 
     def rotate(self):
@@ -20,7 +20,8 @@ class Spinner(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        pen = QPen(Qt.blue, 4)
+        color = self.palette().color(self.foregroundRole())
+        pen = QPen(color, 4)
         painter.setPen(pen)
 
         rect = self.rect().adjusted(6, 6, -6, -6)
@@ -37,8 +38,8 @@ class SpinnerDialog(QWidget):
 
         self.spinner = Spinner()
         self.label = QLabel(texto)
-        self.label.setStyleSheet("color: #4285F4; font-size: 14px;")
-
+        self.label.setObjectName("spinnerLabel")
+        
         layout.addWidget(self.spinner, alignment=Qt.AlignCenter)
         layout.addWidget(self.label, alignment=Qt.AlignCenter)
 

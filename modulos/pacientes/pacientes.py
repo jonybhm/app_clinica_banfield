@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QTableWidget, QTableWidgetItem, QLineEdit, QMessageBox
 )
 from PyQt5.QtCore import Qt, QSize
-from acceso_db.repositorio_historia import obtener_datos_paciente_y_historial, buscar_pacientes, obtener_pacientes,buscar_pacientes_triple_factor
+from acceso_db.repositorios.repositorio_historia import obtener_datos_paciente_y_historial, buscar_pacientes, obtener_pacientes,buscar_pacientes_triple_factor
 from auxiliar.editor_texto.rtf_utiles import limpiar_evolucion
 from modulos.evolucion.dialogo_consulta import DialogoConsulta
 from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
@@ -20,6 +20,9 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtGui import QKeySequence, QIcon
 from auxiliar.widgets.widgets_personalizados import formatear_fecha
+from workers.base.task_manager import TaskManager
+from workers.pacientes.datos_paciente_worker import DatosPacienteWorker
+from workers.pacientes.pacientes_worker import BuscarPacientesWorker
 
 class PantallaPacientes(QWidget):
     def __init__(self, id_profesional, nombre_profesional):
@@ -88,28 +91,25 @@ class PantallaPacientes(QWidget):
 
 
     def buscar_paciente_ui(self):
-        # Mostrar spinner
-        spinner = SpinnerDialog("Cargando...")
-        spinner.show()
-        QApplication.processEvents()
-
-        """ Ejecuta búsqueda por DNI """
         dni = self.input_dni.text().strip()
         nombre = self.input_nombre.text().strip()
         apellido = self.input_apellido.text().strip()
 
         if not dni and not nombre and not apellido:
-            QMessageBox.warning(self, "Atención", "Ingrese al menos un criterio (DNI, Nombre o Apellido).")
+            QMessageBox.warning(self, "Atención", "Ingrese al menos un criterio.")
             return
 
-        resultados = buscar_pacientes_triple_factor(dni=dni, nombre=nombre, apellido=apellido)
+        task = BuscarPacientesWorker(dni, nombre, apellido)
+        task.signals.finished.connect(self._mostrar_pacientes)
+        task.signals.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
 
+        TaskManager.instance().run(task, "Buscando pacientes...")
+
+    def _mostrar_pacientes(self, resultados):
         if not resultados:
-            QMessageBox.information(self, "Sin resultados", "No se encontraron pacientes con esos datos.")
+            QMessageBox.information(self, "Sin resultados", "No se encontraron pacientes.")
             return
 
-        
-        # Llenar tabla
         self.tabla.clear()
         self.tabla.setRowCount(len(resultados))
         self.tabla.setColumnCount(4)
@@ -118,57 +118,45 @@ class PantallaPacientes(QWidget):
         ])
 
         for fila_idx, fila in enumerate(resultados):
-            evolucion = fila.get("EVOLUCION", "")
-            evolucion_limpia = limpiar_evolucion(evolucion)
+            evolucion = limpiar_evolucion(fila.get("EVOLUCION", ""))
 
             valores = [
                 fila.get("NOMBRE", ""),
                 fila.get("DOCUMENTO", ""),
                 formatear_fecha(fila.get("FENAC", "")),
-                evolucion_limpia[:80] + "..." if evolucion_limpia else ""
+                evolucion[:80] + "..." if evolucion else ""
             ]
-            for col_idx, valor in enumerate(valores):
-                item = QTableWidgetItem(str(valor))
-                if col_idx == 0:
-                    item.setData(Qt.UserRole, fila["CODPAC"]) 
-                self.tabla.setItem(fila_idx, col_idx, item)
 
-        # Ajustar ancho columnas
+            for col, val in enumerate(valores):
+                item = QTableWidgetItem(str(val))
+                if col == 0:
+                    item.setData(Qt.UserRole, fila["CODPAC"])
+                self.tabla.setItem(fila_idx, col, item)
+
         self.tabla.resizeColumnsToContents()
-        self.tabla.horizontalHeader().setStretchLastSection(False)
-        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-
-        # Ordenamiento por columna
-        self.tabla.setSortingEnabled(True)
-
-        # Ordenar H. Turno (columna 5)
-        self.tabla.sortItems(5, Qt.AscendingOrder)
-
         self.tabla.setAlternatingRowColors(True)
+        self.tabla.setSortingEnabled(True)
 
 
     def abrir_dialogo_consulta(self):
-        # Mostrar spinner
-        spinner = SpinnerDialog("Cargando...")
-        spinner.show()
-        QApplication.processEvents()
-        
-        """ Abre el historial completo del paciente """
         fila = self.tabla.currentRow()
         if fila < 0:
-            QMessageBox.warning(self, "Atención", "Seleccioná un paciente de la tabla.")
+            QMessageBox.warning(self, "Atención", "Seleccioná un paciente.")
             return
 
-        item_paciente = self.tabla.item(fila, 0)
-        codpac = item_paciente.data(Qt.UserRole)
+        codpac = self.tabla.item(fila, 0).data(Qt.UserRole)
 
-        if not codpac:
-            QMessageBox.warning(self, "Error", "No se encontró el código del paciente.")
-            return
+        task = DatosPacienteWorker(codpac, self.id_profesional)
+        task.signals.finished.connect(self._abrir_dialogo_con_datos)
+        task.signals.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
 
-        datos_paciente, historial = obtener_datos_paciente_y_historial(codpac, self.id_profesional)
-        if not datos_paciente:
-            QMessageBox.warning(self, "Error", "No se pudieron obtener los datos del paciente.")
+        TaskManager.instance().run(task, "Cargando historia clínica...")
+
+    def _abrir_dialogo_con_datos(self, resultado):
+        datos_paciente, historial = resultado
+
+        if not datos_paciente or not datos_paciente.get("HCLIN"):
+            QMessageBox.critical(self, "Error", "Datos incompletos del paciente.")
             return
 
         datos_paciente["ID_PROFESIONAL"] = self.id_profesional
@@ -176,3 +164,4 @@ class PantallaPacientes(QWidget):
 
         dlg = DialogoConsulta(datos_paciente, historial, self)
         dlg.exec_()
+

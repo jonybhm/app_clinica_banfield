@@ -29,7 +29,7 @@ if not es_admin():
 from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
-from main_window import MainWindow
+from modulos.main_window.main_window import MainWindow
 from modulos.login.login import PantallaLogin
 from auxiliar.rutas import recurso_path
 from PyQt5.QtWidgets import QApplication, QMessageBox
@@ -100,9 +100,5 @@ if __name__ == "__main__":
             "Se generó un archivo de log.\n\n"
             "Envíe el archivo de la carpeta 'logs'."
         )
-        # msg = QMessageBox()
-        # msg.setIcon(QMessageBox.Critical)
-        # msg.setWindowTitle("Error de conexión")
-        # msg.setText(str(e))
-        # msg.exec_()
+
         sys.exit(1)

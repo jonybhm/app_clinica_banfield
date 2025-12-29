@@ -7,7 +7,8 @@ Created on Mon Jul 14 13:42:13 2025
 
 
 #modulos/dialogo_consulta.py
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QDialog, QTabWidget, QWidget, QVBoxLayout, QLabel, QPushButton,
     QHBoxLayout, QTextEdit, QMessageBox, QScrollArea
@@ -33,6 +34,7 @@ from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from workers.base.base_task import BaseTask
 from workers.base.task_manager import TaskManager
+import resources_rc
 
 
 class DialogoConsulta(QDialog):
@@ -60,15 +62,23 @@ class DialogoConsulta(QDialog):
         # Botones inferiores
         botones_layout = QHBoxLayout()
         boton_guardar = QPushButton("Grabar")
+        boton_guardar.setIcon(QIcon(":/assets/svg/cross.svg"))
+        boton_guardar.setIconSize(QSize(20, 20))
         boton_guardar.clicked.connect(self.confirmar_guardado)
 
         boton_salir = QPushButton("Salir")
+        boton_salir.setIcon(QIcon(":/assets/svg/exit.svg"))
+        boton_salir.setIconSize(QSize(20, 20))
         boton_salir.clicked.connect(self.reject)
 
         boton_imprimir = QPushButton("Imprimir Historial Clínico")
+        boton_imprimir.setIcon(QIcon(":/assets/svg/print.svg"))
+        boton_imprimir.setIconSize(QSize(20, 20))
         boton_imprimir.clicked.connect(self.abrir_vista_previa)
 
         boton_informes = QPushButton("Ver Informes")
+        boton_informes.setIcon(QIcon(":/assets/svg/folder.svg"))
+        boton_informes.setIconSize(QSize(20, 20))
         boton_informes.clicked.connect(self.abrir_informes)
 
         botones_layout.addWidget(boton_guardar)

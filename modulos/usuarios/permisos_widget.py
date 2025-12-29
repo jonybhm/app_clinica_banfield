@@ -6,7 +6,7 @@ Created on Thu Aug 19 19:26:31 2025
 """
 
 # modulos/permisos_widget.py
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QCheckBox, QPushButton, QMessageBox
 from acceso_db.conexion import obtener_conexion
 
 class PermisosWidget(QWidget):
@@ -65,6 +65,14 @@ class PermisosWidget(QWidget):
                 self.table.setCellWidget(i, j, chk)
 
     def guardar_permisos(self):
+        reply = QMessageBox.question(
+            self, "Confirmar Guardado",
+            "¿Desea guardar los cambios?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return  # cancelar
+        
         conn = obtener_conexion()
         cursor = conn.cursor()
 
@@ -91,3 +99,5 @@ class PermisosWidget(QWidget):
 
         conn.commit()
         conn.close()
+
+        QMessageBox.information(self, "Éxito", "Cambios guardados correctamente")

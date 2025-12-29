@@ -22,7 +22,6 @@ class DialogoNuevoModelo(QDialog):
         self.setWindowTitle("Modelos de informe")
         self.resize(1200, 750)
 
-        # Habilitar minimizar / maximizar
         self.setWindowFlags(
             self.windowFlags()
             | Qt.WindowMinimizeButtonHint
@@ -35,7 +34,6 @@ class DialogoNuevoModelo(QDialog):
         layout.setSpacing(20)
         layout.setContentsMargins(20, 20, 20, 20)
 
-        # ---------------- Lista + buscador ----------------
         col_lista = QVBoxLayout()
 
         self.buscador = QLineEdit()
@@ -49,13 +47,11 @@ class DialogoNuevoModelo(QDialog):
         col_lista.addWidget(self.buscador)
         col_lista.addWidget(self.lista)
 
-        # ---------------- Botones CRUD ----------------
         col_botones = QVBoxLayout()
 
         btn_nuevo = QPushButton("Crear nuevo modelo")
         btn_nuevo.setIcon(QIcon(":/assets/svg/new.svg"))
         btn_nuevo.setIconSize(QSize(20, 20))
-        # btn_cargar = QPushButton("👁️‍🗨️ Vista previa")
         btn_eliminar = QPushButton("Eliminar modelo")
         btn_eliminar.setIcon(QIcon(":/assets/svg/delete.svg"))
         btn_eliminar.setIconSize(QSize(20, 20))
@@ -66,11 +62,9 @@ class DialogoNuevoModelo(QDialog):
 
         col_botones.addStretch()
         col_botones.addWidget(btn_nuevo)
-        # col_botones.addWidget(btn_cargar)
         col_botones.addWidget(btn_eliminar)
         col_botones.addStretch()
 
-        # ---------------- Vista previa ----------------
         col_preview = QVBoxLayout()
 
         self.editor = EditorTextoEnriquecido()
@@ -82,7 +76,6 @@ class DialogoNuevoModelo(QDialog):
 
         col_preview.addWidget(self.editor)
 
-        # ---------------- Acciones ----------------
         col_acciones = QVBoxLayout()
 
         btn_clonar = QPushButton("Clonar y Editar modelo")
@@ -103,15 +96,12 @@ class DialogoNuevoModelo(QDialog):
         col_acciones.addWidget(btn_modificar)
         col_acciones.addStretch()
 
-        # ---------------- Agregar columnas ----------------
         layout.addLayout(col_lista, 2)
         layout.addLayout(col_botones, 1)
         layout.addLayout(col_preview, 4)
         layout.addLayout(col_acciones, 1)
 
-        # ---------------- Conexiones ----------------
         btn_clonar.clicked.connect(self.clonar_modelo)
-        # btn_cargar.clicked.connect(self.cargar)
         btn_eliminar.clicked.connect(self.eliminar)
         btn_modificar.clicked.connect(self.modificar)
         btn_nuevo.clicked.connect(self.guardar_como_nuevo)
@@ -131,7 +121,6 @@ class DialogoNuevoModelo(QDialog):
 
         self.lista.doubleClicked.connect(self.cargar)
 
-    # ----------- LISTA-------------------
 
     def filtrar_lista(self, texto):
         texto = texto.lower()
@@ -160,7 +149,6 @@ class DialogoNuevoModelo(QDialog):
             log.exception("Error cargando lista de modelos")
             QMessageBox.critical(self, "Error", "No se pudieron cargar los modelos")
 
-    # ------------------------------
 
     def cargar(self):
         item = self.lista.currentItem()
@@ -194,7 +182,6 @@ class DialogoNuevoModelo(QDialog):
                 "No se pudo generar la vista previa."
             )
 
-    # ------------------------------
 
     def modificar(self):
         if not self.codigo_actual:
@@ -229,7 +216,7 @@ class DialogoNuevoModelo(QDialog):
         self.bloquear_ui(True)
         self.worker.start()
 
-    # ------------------------------
+
 
     def guardar_como_nuevo(self):
         nombre, ok = QInputDialog.getText(self, "Nuevo modelo", "Nombre:")
@@ -250,7 +237,6 @@ class DialogoNuevoModelo(QDialog):
         self.bloquear_ui(True)
         self.worker.start()
             
-    # ------------------------------
 
     def eliminar(self):
         idx = self.lista.currentRow()
@@ -290,8 +276,6 @@ class DialogoNuevoModelo(QDialog):
 
    
 
-    # -----------CLONAR MODELO-------------------
-
     def clonar_modelo(self):
         if not self.codigo_actual:
             QMessageBox.warning(
@@ -311,7 +295,7 @@ class DialogoNuevoModelo(QDialog):
 
         self.nombre_nuevo = nombre.strip()
 
-        # Obtener RTF base
+
         conn = obtener_conexion()
         cur = conn.cursor()
         cur.execute(
@@ -321,7 +305,7 @@ class DialogoNuevoModelo(QDialog):
         rtf_base = cur.fetchone()[0]
         conn.close()
 
-        # Worker
+
         self.worker = LibreOfficeWorker(
             editar_rtf_con_libreoffice,
             rtf_base
@@ -334,8 +318,6 @@ class DialogoNuevoModelo(QDialog):
         self.bloquear_ui(True)
         self.worker.start()
 
-
-    # ----------- AUXILIARES -------------------
 
     def bloquear_ui(self, bloqueado: bool):
         self.setEnabled(not bloqueado)

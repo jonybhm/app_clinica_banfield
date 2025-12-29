@@ -1,3 +1,4 @@
+#aceso_db/utilidades.py
 import pyodbc
 import subprocess
 import acceso_db.config as config
@@ -34,5 +35,3 @@ def sincronizar_hora_windows(fecha_hora):
 def obtener_siguiente_codigo(cursor):
     cursor.execute("SELECT ISNULL(MAX(CODIGO), 0) + 1 FROM dbo.TEXTOS")
     return cursor.fetchone()[0]
-
-# -*- coding: utf-8 -*-
