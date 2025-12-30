@@ -4,7 +4,7 @@ Created on Thu May 15 22:24:11 2025
 
 @author: Jonathan
 """
-#main_window.py
+#modulos/main_window/main_window.py
 from PyQt5.QtWidgets import (
     QMainWindow, QPushButton, QStackedWidget, QWidget, QLabel,
     QVBoxLayout, QHBoxLayout, QApplication, QMenuBar, QMenu, QAction, QMessageBox
@@ -29,10 +29,11 @@ class MainWindow(QMainWindow):
     Clase que representa la ventana principal
     Hereda propiedades de PyQT (Main Window)    
     '''
-    def __init__(self, datos_usuario):  
+    def __init__(self, datos_usuario, libreoffice_ok):  
         super().__init__()
         self.datos_usuario = datos_usuario
-        
+        self.libreoffice_ok = libreoffice_ok       
+
         self.settings = QSettings("ClinicaBanfield", "HistoriasClinicas")
         self.setWindowTitle("Clínica Banfield")
         self.setGeometry(200, 100, 900, 700)
@@ -61,7 +62,11 @@ class MainWindow(QMainWindow):
         btn_informes.setIcon(QIcon(recurso_path("assets/icons/informes.png")))
         btn_informes.setIconSize(pixmap.size())
         btn_informes.setFixedSize(250, 120)
-        btn_informes.clicked.connect(self.abrir_informes)
+        if not self.libreoffice_ok:
+            btn_informes.setEnabled(False)
+            btn_informes.setToolTip("LibreOffice no está instalado")
+        else:
+            btn_informes.clicked.connect(self.abrir_informes)
 
         # Layout central
         botones_layout = QHBoxLayout()

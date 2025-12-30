@@ -106,13 +106,13 @@ class DialogoUsarModelo(QDialog):
 
         col_acciones = QVBoxLayout()
 
-        self.btn_editar = QPushButton("Escribir informe")
+        self.btn_editar = QPushButton("Usar informe paciente")
         self.btn_editar.setIcon(QIcon(":/assets/svg/inform.svg"))
         self.btn_editar.setIconSize(QSize(20, 20))
-        self.btn_guardar = QPushButton("Guardar informe")
+        self.btn_guardar = QPushButton("Guardar informe paciente")
         self.btn_guardar.setIcon(QIcon(":/assets/svg/save.svg"))
         self.btn_guardar.setIconSize(QSize(20, 20))
-        self.btn_historial = QPushButton("Historial informes")
+        self.btn_historial = QPushButton("Historial informes paciente")
         self.btn_historial.setIcon(QIcon(":/assets/svg/folder.svg"))
         self.btn_historial.setIconSize(QSize(20, 20))
 

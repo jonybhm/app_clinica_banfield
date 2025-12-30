@@ -22,5 +22,8 @@
     <file>assets/svg/help.svg</file>    
     <file>assets/svg/info.svg</file>    
     <file>assets/svg/exit.svg</file>    
+    <file>assets/svg/date.svg</file>    
+    <file>assets/svg/left.svg</file>    
+    <file>assets/svg/right.svg</file>    
   </qresource>
 </RCC>

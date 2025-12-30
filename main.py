@@ -11,6 +11,15 @@ import sys, time, os, ctypes
 from workers.base.task_manager import TaskManager  
 from workers.base.base_task import BaseTask  
 import resources_rc
+from PyQt5.QtWidgets import QApplication, QSplashScreen
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt
+from modulos.main_window.main_window import MainWindow
+from modulos.login.login import PantallaLogin
+from auxiliar.rutas import recurso_path
+from PyQt5.QtWidgets import QApplication, QMessageBox
+from acceso_db.utilidades import obtener_hora_servidor, sincronizar_hora_windows
+from utilidades.libreoffice import libreoffice_instalado, mostrar_dialogo_libreoffice
 
 logging.info("Iniciando aplicación...")
 
@@ -26,19 +35,12 @@ if not es_admin():
     ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
     sys.exit()
     
-from PyQt5.QtWidgets import QApplication, QSplashScreen
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt
-from modulos.main_window.main_window import MainWindow
-from modulos.login.login import PantallaLogin
-from auxiliar.rutas import recurso_path
-from PyQt5.QtWidgets import QApplication, QMessageBox
-from acceso_db.utilidades import obtener_hora_servidor, sincronizar_hora_windows
 
 
 class ControladorApp:
-    def __init__(self, app):
+    def __init__(self, app, libreoffice_ok):
         self.app = app
+        self.libreoffice_ok = libreoffice_ok
         self.login_window = None
         self.main_window = None
 
@@ -53,7 +55,7 @@ class ControladorApp:
         self.mostrar_main(datos_usuario)
 
     def mostrar_main(self, datos_usuario):
-        self.main_window = MainWindow(datos_usuario)
+        self.main_window = MainWindow(datos_usuario, self.libreoffice_ok)
         self.main_window.logout_signal.connect(self._cerrar_sesion)
         self.main_window.show()
 
@@ -76,6 +78,18 @@ if __name__ == "__main__":
         splash.show()
         app.processEvents()
 
+        
+        libreoffice_ok = libreoffice_instalado()
+
+        if not libreoffice_ok:
+            accion = mostrar_dialogo_libreoffice()
+            if accion == "install":
+                import webbrowser
+                webbrowser.open("https://www.libreoffice.org/download/download/")
+                logging.info("Usuario optó por instalar LibreOffice, abriendo navegador")
+            else:
+                logging.info("Usuario optó por continuar sin instalar LibreOffice")
+
         # Sincronizar hora con servidor SQL
         logging.info("Sincronizando hora con servidor SQL")
         from datetime import datetime
@@ -84,8 +98,9 @@ if __name__ == "__main__":
         
         # time.sleep(2) # Simular tiempo de carga
 
-        controlador = ControladorApp(app)
+        controlador = ControladorApp(app, libreoffice_ok)        
         controlador.mostrar_login()
+
         splash.finish(controlador.login_window)
 
         logging.info("Iniciando loop de eventos de QApplication")

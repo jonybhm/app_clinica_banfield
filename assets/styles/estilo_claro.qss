@@ -199,9 +199,25 @@ QDateEdit::drop-down {
 }
 
 QDateEdit::down-arrow {
-    image: url(:/assets/svg/downarrow.svg);
+    image: url(:/assets/svg/date.svg);
     width: 16px;
     height: 16px;
+}
+
+QCalendarWidget QToolButton {
+    background: transparent;
+    border: none;
+    margin: 5px;
+}
+
+QCalendarWidget QToolButton#qt_calendar_prevmonth {
+    qproperty-icon: url(:/assets/svg/left.svg);
+    icon-size: 16px 16px;
+}
+
+QCalendarWidget QToolButton#qt_calendar_nextmonth {
+    qproperty-icon: url(:/assets/svg/right.svg);
+    icon-size: 16px 16px;
 }
 
 QCalendarWidget QWidget {
