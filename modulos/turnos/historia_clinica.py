@@ -15,7 +15,7 @@ import os, datetime
 from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from auxiliar.rutas import recurso_path
-from acceso_db.repositorios.repositorio_historia import buscar_turnos, obtener_dias_con_turnos, marcar_turno_atendido,paciente_tiene_evolucion
+from acceso_db.repositorios.repositorio_historia import buscar_turnos, esta_atendido, obtener_dias_con_turnos, marcar_turno_atendido,paciente_tiene_evolucion
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtGui import QKeySequence
 
@@ -53,6 +53,7 @@ class PantallaHistoriaClinica(QWidget):
         # Filtro por estado
         self.estado_combo = QComboBox()
         self.estado_combo.addItems(["TODOS", "PENDIENTE", "ATENDIDO"])
+        self.estado_combo.setCurrentText("PENDIENTE")
         filtro_layout.addWidget(QLabel("Estado:"))
         filtro_layout.addWidget(self.estado_combo)
 
@@ -116,6 +117,8 @@ class PantallaHistoriaClinica(QWidget):
 
         self.tabla.doubleClicked.connect(self.abrir_dialogo_consulta)
 
+        
+
     def buscar_turnos_ui(self):
         fecha = self.fecha_edit.date().toString("yyyy-MM-dd")
         estado = self.estado_combo.currentText()
@@ -141,10 +144,10 @@ class PantallaHistoriaClinica(QWidget):
 
         self.tabla.clear()
         self.tabla.setRowCount(0)
-        self.tabla.setColumnCount(8)
+        self.tabla.setColumnCount(7)
         self.tabla.setHorizontalHeaderLabels([
             "Paciente", "Edad", "Sexo", "Recepción",
-            "Espera", "H. Turno", "Profesional", "Atendido"
+            "Espera", "H. Turno", "Atendido"
         ])
 
         fecha = self.fecha_edit.date().toString("yyyy-MM-dd")
@@ -166,24 +169,24 @@ class PantallaHistoriaClinica(QWidget):
             row = self.tabla.rowCount()
             self.tabla.insertRow(row)
 
-            atendido = str(fila.get("ATENDHC", "0")) == "1"
+            # atendido = str(fila.get("ATENDHC", "0")) == "1"
             valores = [
                 nombre,
                 fila.get("EDAD", ""),
                 fila.get("SEXO", ""),
                 recepcion_txt,
                 "",
-                hora_turno,
-                self.nombre_profesional
+                hora_turno
             ]
-            estado = "✔️ ATENDIDO" if atendido or tiene_evo else "❌ FALTA ATENDER"
-            self.tabla.setItem(row, 7, QTableWidgetItem(estado))
+            estado = "✔️ ATENDIDO" if esta_atendido(fila, fecha) else "❌ FALTA ATENDER"
+            self.tabla.setItem(row, 6, QTableWidgetItem(estado))
             
 
             for col, val in enumerate(valores):
                 item = QTableWidgetItem(str(val))
                 if col == 0:
                     item.setData(Qt.UserRole, codpac)
+                    item.setData(Qt.UserRole + 1, fila)  # guardar fila completa
                 self.tabla.setItem(row, col, item)
 
  
@@ -286,25 +289,32 @@ class PantallaHistoriaClinica(QWidget):
             QMessageBox.warning(self, "Atención", "Seleccioná un paciente.")
             return
 
-        codpac = self.tabla.item(fila, 0).data(Qt.UserRole)
+        item = self.tabla.item(fila, 0)
+        codpac = item.data(Qt.UserRole)
+        turno = item.data(Qt.UserRole + 1)
 
         task = DatosPacienteWorker(codpac, self.id_profesional)
-        task.signals.finished.connect(self._abrir_dialogo_con_datos)
+        task.signals.finished.connect(lambda res, t=turno: self._abrir_dialogo_con_datos(res, t))
         task.signals.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
 
         TaskManager.instance().run(task, "Cargando historia clínica...")
 
-    def _abrir_dialogo_con_datos(self, resultado):
+    def _abrir_dialogo_con_datos(self, resultado, turno):
         datos_paciente, historial = resultado
 
         if not datos_paciente or not datos_paciente.get("HCLIN"):
             QMessageBox.critical(self, "Error", "Datos incompletos del paciente.")
             return
 
+        datos_paciente["FECHA"] = turno.get("FECHA", "")
+        datos_paciente["HORA"] = turno.get("HORA", "")
+        datos_paciente["PROTOCOLO"] = turno.get("PROTOCOLO", "")
         datos_paciente["ID_PROFESIONAL"] = self.id_profesional
         datos_paciente["PROFESIONAL"] = self.nombre_profesional
+        datos_paciente["SECUEN_TURNO"] = turno.get("SECUEN")
 
         dlg = DialogoConsulta(datos_paciente, historial, self)
+        dlg.evolucion_guardada.connect(self.buscar_turnos_ui)
         dlg.exec_()
 
 

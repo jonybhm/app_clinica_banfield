@@ -15,9 +15,9 @@ def mostrar_dialogo_libreoffice(parent=None):
         "No se encontró LibreOffice instalado.\n\n"
         "Las funciones de informes estarán deshabilitadas."
     )
-    msg.setInformativeText("¿Desea instalar LibreOffice ahora?")
+    msg.setInformativeText("¿Desea descargar LibreOffice? Será redirigido al sitio oficial.")
 
-    btn_instalar = msg.addButton("Instalar LibreOffice", QMessageBox.AcceptRole)
+    btn_instalar = msg.addButton("Descargar LibreOffice", QMessageBox.AcceptRole)
     btn_continuar = msg.addButton("Continuar sin informes", QMessageBox.RejectRole)
 
     msg.setDefaultButton(btn_instalar)

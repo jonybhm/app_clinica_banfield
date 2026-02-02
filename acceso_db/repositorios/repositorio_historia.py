@@ -20,7 +20,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
         SELECT 
             COALESCE(t.CODPAC, c.CODPAC) AS CODPAC,
             COALESCE(t.FECHTUR, c.FEPACIENTE) AS FECHA,
-            t.HORATUR, t.MINTUR,
+            t.HORATUR, t.MINTUR, t.SECUEN, t.ATENDIDO,
             p.NOMBRE, p.FENAC, p.SEXO, p.HISTORIACLI,
             c.RECEPCION, c.HORA AS HORAREC, c.ANULADO, c.ATENDHC
         FROM dbo.AMOVTURN t
@@ -39,7 +39,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
 
     datos = []
     for row in resultados:
-        (codpac, fecha_tur, horatur, mintur,
+        (codpac, fecha_tur, horatur, mintur, secuen, atendido,
          nombre, fenac, sexo, hclin,
          recepcion, horarec, anulado, atendhc) = row
 
@@ -63,6 +63,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
         sexo_txt = "FEMENINO" if sexo == 2 else "MASCULINO" if sexo == 1 else "-"
 
         datos.append({
+            "SECUEN": secuen,
             "CODPAC": codpac,
             "NOMBRE": nombre,
             "EDAD": f"{edad} años" if edad else "?",
@@ -74,6 +75,7 @@ def buscar_turnos(fecha, estado, id_profesional, nombre_profesional):
             "HCLIN": hclin,
             "ANULADO": anulado,
             "ATENDHC": atendhc or 0,
+            "ATENDIDO": atendido or 0,
             "PROFESIONAL": nombre_profesional,
             "ID_PROFESIONAL": id_profesional
         })
@@ -332,23 +334,48 @@ def buscar_pacientes(nombre=None, dni=None):
     conn.close()
     return [dict(zip(cols, row)) for row in rows]
 
-def marcar_turno_atendido(codpac, id_profesional, fecha):
-    """Marca un turno como atendido y registra hora de recepción si no estaba"""
+
+def marcar_turno_atendido(secuen):
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+
+    query = """
+        UPDATE dbo.AMOVTURN
+        SET ATENDIDO = 1
+        WHERE SECUEN = ?
+    """
+    cursor.execute(query, (secuen))
+    conn.commit()
+    conn.close()
+
+def marcar_atencion_completa(secuen=None, codpac=None, fecha=None, id_profesional=None):
     conn = obtener_conexion()
     cursor = conn.cursor()
 
     hora_sistema = datetime.now().strftime("%H:%M:%S")
 
-    query = """
-        UPDATE dbo.AMOVTURN
-        SET ATENDIDO = 1,
-            HORAREC = ISNULL(HORAREC, ?)
-        WHERE CODPAC = ? AND CODIGO = ? AND CONVERT(date, FECHTUR) = ?
-    """
-    cursor.execute(query, (hora_sistema, codpac, id_profesional, fecha))
+    # 1️⃣ AMOVTURN (si existe turno)
+    if secuen:
+        cursor.execute("""
+            UPDATE dbo.AMOVTURN
+            SET ATENDIDO = 1
+            WHERE SECUEN = ?
+        """, (secuen,))
+
+    # 2️⃣ ACABPAC (si existe recepción)
+    if codpac and fecha and id_profesional:
+        cursor.execute("""
+            UPDATE dbo.ACABPAC
+            SET ATENDHC = 1,
+                HORA = ISNULL(HORA, ?)
+            WHERE CODPAC = ?
+              AND CAST(FEPACIENTE AS DATE) = CAST(? AS DATE)
+              AND MEDEJEPAC = ?
+              AND ISNULL(ANULADO, 0) = 0
+        """, (hora_sistema, codpac, fecha, id_profesional))
+
     conn.commit()
     conn.close()
-
 
 def tiene_turnos_en_fecha(fecha, id_profesional):
     """Devuelve True si el profesional tiene turnos ese día"""
@@ -375,18 +402,7 @@ def obtener_dias_con_turnos(id_profesional):
     conn.close()
     return [f[0] for f in filas if f[0] is not None]
 
-def marcar_turno_atendido(codpac, fecha, id_profesional):
-    conn = obtener_conexion()
-    cursor = conn.cursor()
 
-    query = """
-        UPDATE dbo.AMOVTURN
-        SET ATENDIDO = 1
-        WHERE CODPAC = ? AND CONVERT(date, FECHTUR) = ? AND CODIGO = ?
-    """
-    cursor.execute(query, (codpac, fecha, id_profesional))
-    conn.commit()
-    conn.close()
 
 def paciente_tiene_evolucion(codpac, fecha_turno):
     conn = obtener_conexion()
@@ -437,3 +453,10 @@ def buscar_pacientes_triple_factor(nombre=None, apellido=None, dni=None):
     cols = [col[0] for col in cursor.description]
     conn.close()
     return [dict(zip(cols, row)) for row in rows]
+
+def esta_atendido(turno, fecha):
+    return (
+        turno.get("ATENDIDO", 0) == 1
+        or turno.get("ATENDHC", 0) == 1
+        or paciente_tiene_evolucion(turno.get("CODPAC"), fecha)
+    )

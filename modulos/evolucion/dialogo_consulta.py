@@ -7,7 +7,8 @@ Created on Mon Jul 14 13:42:13 2025
 
 
 #modulos/dialogo_consulta.py
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize, pyqtSignal
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QDialog, QTabWidget, QWidget, QVBoxLayout, QLabel, QPushButton,
     QHBoxLayout, QTextEdit, QMessageBox, QScrollArea
@@ -20,7 +21,7 @@ from acceso_db.repositorios.repositorio_historia import (
     obtener_lista_examenes_complementarios,
     obtener_lista_tratamientos,
     obtener_lista_derivaciones,
-    marcar_turno_atendido
+    marcar_atencion_completa
 )
 from auxiliar.widgets.widgets_personalizados import ComboBoxBuscador
 from acceso_db.conexion import obtener_conexion
@@ -33,9 +34,11 @@ from auxiliar.widgets.spinner import SpinnerDialog
 from PyQt5.QtWidgets import QApplication
 from workers.base.base_task import BaseTask
 from workers.base.task_manager import TaskManager
+from modulos.informes.dialogo_usar_modelo import DialogoUsarModelo
 
 
 class DialogoConsulta(QDialog):
+    evolucion_guardada = pyqtSignal()
     def __init__(self, datos_paciente, historial, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Nueva Consulta / Ver Historia Clínica")
@@ -61,25 +64,40 @@ class DialogoConsulta(QDialog):
         botones_layout = QHBoxLayout()
         boton_guardar = QPushButton("Grabar")
         boton_guardar.clicked.connect(self.confirmar_guardado)
+        boton_guardar.setIcon(QIcon(":/assets/svg/save.svg"))
+        boton_guardar.setIconSize(QSize(20, 20))
 
         boton_salir = QPushButton("Salir")
         boton_salir.clicked.connect(self.reject)
+        boton_salir.setIcon(QIcon(":/assets/svg/exit.svg"))
+        boton_salir.setIconSize(QSize(20, 20))
 
         boton_imprimir = QPushButton("Imprimir Historial Clínico")
         boton_imprimir.clicked.connect(self.abrir_vista_previa)
+        boton_imprimir.setIcon(QIcon(":/assets/svg/print.svg"))
+        boton_imprimir.setIconSize(QSize(20, 20))
 
-        boton_informes = QPushButton("Ver Informes")
+        boton_informes = QPushButton("Ver Historial de Informes")
         boton_informes.clicked.connect(self.abrir_informes)
+        boton_informes.setIcon(QIcon(":/assets/svg/folder.svg"))
+        boton_informes.setIconSize(QSize(20, 20))
+
+        boton_informar = QPushButton("Informar Paciente")
+        boton_informar.clicked.connect(self.informar_paciente)
+        boton_informar.setIcon(QIcon(":/assets/svg/inform.svg"))
+        boton_informar.setIconSize(QSize(20, 20))
 
         botones_layout.addWidget(boton_guardar)
         botones_layout.addWidget(boton_imprimir)
         botones_layout.addWidget(boton_informes)
+        botones_layout.addWidget(boton_informar)
         botones_layout.addWidget(boton_salir)
 
         layout.addLayout(botones_layout)
 
         self.setLayout(layout)
 
+        
         # self.setWindowState(Qt.WindowMaximized)
 
     def _init_tab_consulta(self):
@@ -196,15 +214,7 @@ class DialogoConsulta(QDialog):
         main_layout.addWidget(scroll)
         self.tab_evolucion.setLayout(main_layout)
 
-    def confirmar_guardado(self):
-        reply = QMessageBox.question(
-            self, "Confirmación", "¿Desea guardar esta evolución?",
-            QMessageBox.Yes | QMessageBox.No
-        )
-        if reply == QMessageBox.Yes:
-            self.guardar_evolucion()
-
-    def guardar_evolucion(self):
+    def confirmar_guardado(self):        
         reply = QMessageBox.question(
             self, "Confirmación", "¿Desea guardar esta evolución?",
             QMessageBox.Yes | QMessageBox.No
@@ -223,7 +233,24 @@ class DialogoConsulta(QDialog):
         TaskManager.instance().run(task, "Guardando evolución...")
 
     def _guardar_ok(self, _):
+        try:
+            secuen=self.datos_paciente["SECUEN_TURNO"]                
+            print(f"SECUENCIA: {secuen}")
+            marcar_atencion_completa(
+                secuen=self.datos_paciente.get("SECUEN_TURNO"),
+                codpac=self.datos_paciente["CODPAC"],
+                fecha=self.datos_paciente.get("FECHA"),
+                id_profesional=self.datos_paciente["ID_PROFESIONAL"]
+            )
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "Aviso",
+                f"No se pudo marcar el turno como atendido:\n{e}"
+            )
+
         QMessageBox.information(self, "Éxito", "Evolución guardada correctamente")
+        self.evolucion_guardada.emit()
         self.accept()
 
     def _guardar_error(self, error):
@@ -268,3 +295,27 @@ class DialogoConsulta(QDialog):
 
     def _error_informes(self, error):
         QMessageBox.critical(self, "Error al cargar informes", error)
+
+    def informar_paciente(self):
+        try:
+            dlg = DialogoUsarModelo(
+                datos_usuario={
+                    "CODIGO": self.datos_paciente["ID_PROFESIONAL"],
+                    "APELLIDO": self.datos_paciente["PROFESIONAL"],
+                },
+                parent=self
+            )
+
+            nombre = self.datos_paciente["NOMBRE"]
+            dni = self.datos_paciente.get("DOCUMENTO", "")
+            nombre_visible = f"{nombre} ({dni})"
+
+            dlg.precargar_paciente(
+                codpac=self.datos_paciente["CODPAC"],
+                nombre_visible=nombre_visible
+            )
+
+            dlg.exec_()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))

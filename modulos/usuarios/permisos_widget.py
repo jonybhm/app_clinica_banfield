@@ -38,6 +38,7 @@ class PermisosWidget(QWidget):
             FROM dbo.ADETER a
             INNER JOIN dbo.APGMSIS p ON a.NUMPROG = p.CODIGO
             WHERE a.CODIGO = ?
+            ORDER BY p.CODIGO
         """, (self.codigo_usuario,))
         rows = cursor.fetchall()
         conn.close()

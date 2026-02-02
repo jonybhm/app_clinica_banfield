@@ -14,12 +14,10 @@ from PyQt5.QtGui import QTextDocument,QTextDocumentWriter
 from PyQt5.QtCore import QBuffer, QIODevice
 
 def limpiar_evolucion(rtf):
-    print("\n[DEBUG] RTF ORIGINAL:")
-    print(rtf)
+
     try:
         texto_plano = rtf_to_text(rtf).strip()
-        print("[DEBUG] TEXTO LIMPIO:")
-        print(texto_plano)
+
         return texto_plano
     except Exception as e:
         print("[ERROR] Al convertir RTF:", e)

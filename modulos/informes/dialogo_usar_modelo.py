@@ -106,7 +106,7 @@ class DialogoUsarModelo(QDialog):
 
         col_acciones = QVBoxLayout()
 
-        self.btn_editar = QPushButton("Usar informe paciente")
+        self.btn_editar = QPushButton("Editar informe paciente")
         self.btn_editar.setIcon(QIcon(":/assets/svg/inform.svg"))
         self.btn_editar.setIconSize(QSize(20, 20))
         self.btn_guardar = QPushButton("Guardar informe paciente")
@@ -308,3 +308,20 @@ class DialogoUsarModelo(QDialog):
         habilitar = self.codpac_actual is not None and self.rtf_actual is not None
         self.btn_guardar.setEnabled(habilitar)
         self.btn_editar.setEnabled(habilitar)
+
+    def precargar_paciente(self, codpac, nombre_visible):
+        self.codpac_actual = codpac
+        self.paciente_nombre = nombre_visible
+
+        self.lbl_paciente.setText(f"PACIENTE SELECCIONADO: {nombre_visible}")
+
+        self.pac_dni.hide()
+        self.pac_nombre.hide()
+        self.pac_apellido.hide()
+        
+        self.lista_pacientes.hide()
+
+        self.btn_historial.setEnabled(True)
+
+        self._actualizar_estado_botones()
+
