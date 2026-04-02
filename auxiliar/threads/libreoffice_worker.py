@@ -1,3 +1,4 @@
+# auxiliar/threads/libreoffice_worker.py
 from PyQt5.QtCore import QThread, pyqtSignal
 import logging
 

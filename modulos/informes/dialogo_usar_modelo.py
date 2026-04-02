@@ -9,12 +9,8 @@ from PyQt5.QtWidgets import (
 )
 
 from acceso_db.conexion import obtener_conexion
-from acceso_db.repositorios.repositorio_historia import buscar_pacientes_triple_factor
-
 from auxiliar.editor_texto.editor_richtext import EditorTextoEnriquecido
-from auxiliar.editor_texto.editor_externo import editar_rtf_con_libreoffice
 from auxiliar.editor_texto.rtf_preview import rtf_a_html_con_libreoffice
-from auxiliar.threads.libreoffice_worker import LibreOfficeWorker
 
 from workers.informes.informes_previos_worker import InformesPreviosWorker
 from modulos.informes.dialogo_informes import DialogoInformes
@@ -29,24 +25,27 @@ class DialogoUsarModelo(QDialog):
     def __init__(self, datos_usuario, parent=None):
         super().__init__(parent)
         self.datos_usuario = datos_usuario
+
         self.setWindowTitle("Informes de Pacientes")
         self.resize(1400, 800)
 
-       
         self.setWindowFlags(
             self.windowFlags()
             | Qt.WindowMinimizeButtonHint
             | Qt.WindowMaximizeButtonHint
         )
 
-        self.datos_usuario = datos_usuario
         self.codpac_actual = None
         self.modelo_actual = None
         self.rtf_actual = None
 
+        # 🆕 modelos seleccionados
+        self.modelos_seleccionados = []
+
         layout = QHBoxLayout(self)
         layout.setSpacing(20)
 
+        # ================= PACIENTES =================
         col_pac = QVBoxLayout()
         col_pac.addWidget(QLabel("Paciente"))
 
@@ -59,7 +58,6 @@ class DialogoUsarModelo(QDialog):
 
         btn_buscar_pac = QPushButton("Buscar")
         btn_buscar_pac.setIcon(QIcon(":/assets/svg/search.svg"))
-        btn_buscar_pac.setIconSize(QSize(20, 20))
         btn_buscar_pac.clicked.connect(self.buscar_paciente)
 
         self.lista_pacientes = QListWidget()
@@ -71,6 +69,7 @@ class DialogoUsarModelo(QDialog):
         col_pac.addWidget(btn_buscar_pac)
         col_pac.addWidget(self.lista_pacientes)
 
+        # ================= MODELOS =================
         col_modelos = QVBoxLayout()
         col_modelos.addWidget(QLabel("Modelos"))
 
@@ -81,47 +80,47 @@ class DialogoUsarModelo(QDialog):
         self.lista_modelos = QListWidget()
         self.lista_modelos.itemClicked.connect(self.cargar_modelo)
 
+        # 🆕 botones conjunto
+        self.btn_agregar = QPushButton("➕ Agregar al conjunto")
+        self.btn_agregar.clicked.connect(self.agregar_modelo)
+
+        self.btn_quitar = QPushButton("❌ Quitar seleccionado")
+        self.btn_quitar.clicked.connect(self.quitar_modelo)
+
+        # 🆕 lista seleccionados
+        self.lista_seleccionados = QListWidget()
+
         col_modelos.addWidget(self.buscar_modelo)
         col_modelos.addWidget(self.lista_modelos)
+        col_modelos.addWidget(self.btn_agregar)
+        col_modelos.addWidget(QLabel("Modelos seleccionados"))
+        col_modelos.addWidget(self.lista_seleccionados)
+        col_modelos.addWidget(self.btn_quitar)
 
+        # ================= PREVIEW =================
         col_preview = QVBoxLayout()
         col_preview.addWidget(QLabel("Vista previa"))
 
         self.lbl_paciente = QLabel("PACIENTE SELECCIONADO: —")
-        self.lbl_paciente.setStyleSheet("""
-            QLabel {
-                font-weight: bold;
-                font-size: 14px;
-                color: #2c3e50;
-                padding: 6px;
-                background: #ecf0f1;
-                border-radius: 4px;
-            }
-        """)
         col_preview.addWidget(self.lbl_paciente)
-        
+
         self.editor = EditorTextoEnriquecido()
         self.editor.setReadOnly(True)
         col_preview.addWidget(self.editor)
 
+        # ================= ACCIONES =================
         col_acciones = QVBoxLayout()
 
         self.btn_editar = QPushButton("Editar informe paciente")
-        self.btn_editar.setIcon(QIcon(":/assets/svg/inform.svg"))
-        self.btn_editar.setIconSize(QSize(20, 20))
         self.btn_guardar = QPushButton("Guardar informe paciente")
-        self.btn_guardar.setIcon(QIcon(":/assets/svg/save.svg"))
-        self.btn_guardar.setIconSize(QSize(20, 20))
         self.btn_historial = QPushButton("Historial informes paciente")
-        self.btn_historial.setIcon(QIcon(":/assets/svg/folder.svg"))
-        self.btn_historial.setIconSize(QSize(20, 20))
 
-        self.btn_editar.setEnabled(False)
-        self.btn_guardar.setEnabled(False)
-        
         self.btn_editar.clicked.connect(self.editar_informe)
         self.btn_guardar.clicked.connect(self.guardar_informe)
         self.btn_historial.clicked.connect(self.ver_informes)
+
+        self.btn_editar.setEnabled(False)
+        self.btn_guardar.setEnabled(False)
 
         for b in (self.btn_editar, self.btn_guardar, self.btn_historial):
             b.setFixedHeight(60)
@@ -139,19 +138,17 @@ class DialogoUsarModelo(QDialog):
 
         self.showMaximized()
 
+    # ================= PACIENTES =================
 
     def buscar_paciente(self):
-
-        dni = self.pac_dni.text()
-        nombre = self.pac_nombre.text()
-        apellido = self.pac_apellido.text()
-
-        task = BuscarPacientesWorker(dni, nombre, apellido)
+        task = BuscarPacientesWorker(
+            self.pac_dni.text(),
+            self.pac_nombre.text(),
+            self.pac_apellido.text()
+        )
         task.signals.finished.connect(self._mostrar_pacientes)
-        task.signals.error.connect(lambda e: QMessageBox.critical(self, "Error", e))
-
         TaskManager.instance().run(task, "Buscando pacientes...")
-        
+
     def _mostrar_pacientes(self, resultados):
         self.lista_pacientes.clear()
         for p in resultados:
@@ -161,27 +158,20 @@ class DialogoUsarModelo(QDialog):
 
     def seleccionar_paciente(self, item):
         self.codpac_actual = item.data(Qt.UserRole)
-        self.paciente_nombre = item.text()
-        self.lbl_paciente.setText(f"PACIENTE SELECCIONADO: {self.paciente_nombre}")
+        self.lbl_paciente.setText(f"PACIENTE: {item.text()}")
         self._actualizar_estado_botones()
 
-        self.btn_guardar.setEnabled(True)
-        self.btn_editar.setEnabled(True)
-        self.btn_historial.setEnabled(True)
-
-
+    # ================= MODELOS =================
 
     def cargar_modelos(self):
         from workers.informes.modelos_worker import cargar_modelos
-
         task = BaseTask(cargar_modelos)
         task.signals.finished.connect(self._mostrar_modelos)
-        TaskManager.instance().run(task, "Cargando modelos...")
+        TaskManager.instance().run(task)
 
     def _mostrar_modelos(self, modelos):
         self.modelos = modelos
         self.refrescar_lista_modelos(modelos)
-
 
     def filtrar_modelos(self, texto):
         texto = texto.lower()
@@ -196,41 +186,169 @@ class DialogoUsarModelo(QDialog):
             self.lista_modelos.addItem(item)
 
     def cargar_modelo(self, item):
-        codigo = item.data(Qt.UserRole)
+        self.modelo_actual = (item.data(Qt.UserRole), item.text())
 
         from workers.informes.vista_previa_worker import cargar_vista_previa
-
-        task = BaseTask(cargar_vista_previa, codigo)
+        task = BaseTask(cargar_vista_previa, self.modelo_actual[0])
         task.signals.finished.connect(self._modelo_cargado)
-        TaskManager.instance().run(task, "Cargando modelo...")
+        TaskManager.instance().run(task)
 
     def _modelo_cargado(self, data):
         self.rtf_actual, html = data
         self.editor.setHtml(html)
         self._actualizar_estado_botones()
 
+    # ================= CONJUNTO =================
 
-
-
-    def editar_informe(self):
-        if not self.rtf_actual:
-            QMessageBox.warning(self, "Atención", "No hay informe cargado.")
+    def agregar_modelo(self):
+        if not self.modelo_actual:
+            QMessageBox.warning(self, "Atención", "Seleccione un modelo.")
             return
 
+        codigo, desc = self.modelo_actual
+
+        if any(c == codigo for c, _ in self.modelos_seleccionados):
+            return
+
+        self.modelos_seleccionados.append((codigo, desc))
+
+        item = QListWidgetItem(desc)
+        item.setData(Qt.UserRole, codigo)
+        self.lista_seleccionados.addItem(item)
+
+        self.actualizar_preview()
+
+    def quitar_modelo(self):
+        row = self.lista_seleccionados.currentRow()
+        if row >= 0:
+            item = self.lista_seleccionados.takeItem(row)
+            codigo = item.data(Qt.UserRole)
+            self.modelos_seleccionados = [
+                (c, d) for c, d in self.modelos_seleccionados if c != codigo
+            ]
+
+            self.actualizar_preview()
+
+    # ================= RTF =================
+
+    # def concatenar_rtfs(self, rtfs):
+    #     if not rtfs:
+    #         return None
+
+    #     def extraer_contenido(rtf):
+    #         """
+    #         Extrae SOLO el contenido interno del RTF,
+    #         eliminando header y llaves externas.
+    #         """
+    #         if not rtf:
+    #             return ""
+
+    #         rtf = rtf.strip()
+
+    #         # Buscar inicio del contenido (después del header)
+    #         inicio = rtf.find(r"\viewkind")
+    #         if inicio == -1:
+    #             inicio = rtf.find(r"\pard")
+
+    #         if inicio != -1:
+    #             rtf = rtf[inicio:]
+
+    #         # sacar última llave
+    #         if rtf.endswith("}"):
+    #             rtf = rtf[:-1]
+
+    #         return rtf.strip()
+
+    #     # 👉 usar el primero como base REAL
+    #     base = rtfs[0].strip()
+
+    #     if not base.endswith("}"):
+    #         return base  # fallback
+
+    #     # sacar cierre final
+    #     base = base[:-1]
+
+    #     # 👉 concatenar contenidos
+    #     for rtf in rtfs[1:]:
+    #         contenido = extraer_contenido(rtf)
+
+    #         base += r"\par\par\b ---------\b0\par\par"
+    #         base += contenido
+
+    #     # cerrar documento
+    #     base += "}"
+
+    #     return base
+        
+    def actualizar_preview(self):
+        if not self.modelos_seleccionados:
+            self.editor.clear()
+            self.html_actual = None
+            return
+
+        from workers.informes.vista_previa_worker import cargar_vista_previa
+
+        html_total = "<html><body>"
+
+        for codigo, desc in self.modelos_seleccionados:
+            _, html = cargar_vista_previa(codigo)
+
+            html_total += f"<h1>{desc}</h1>"
+            html_total += "<p></p>"
+            html_total += html
+            html_total += "<p>--------------------</p>"
+
+        html_total += "</body></html>"
+
+        self.html_actual = html_total
+        self.editor.setHtml(html_total)
+
+    # ================= ACCIONES =================
+
+    def editar_informe(self):
+        if not hasattr(self, "html_actual") or not self.html_actual:
+            QMessageBox.warning(self, "Atención", "No hay contenido.")
+            return
+
+        from auxiliar.editor_texto.rtf_preview import html_a_rtf_con_libreoffice
         from workers.editor_rtf.libreoffice_tasks import editar_rtf_task
 
-        task = BaseTask(editar_rtf_task, self.rtf_actual)
-        task.signals.finished.connect(self._editar_ok)
-        TaskManager.instance().run(task, "Abriendo LibreOffice...")
+        try:
+            # 🔥 convertir HTML → RTF
+            rtf = html_a_rtf_con_libreoffice(self.html_actual)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error convirtiendo a RTF:\n{e}")
+            return
 
+        task = BaseTask(editar_rtf_task, rtf)
+        task.signals.finished.connect(self._editar_ok)
+
+        TaskManager.instance().run(task, "Abriendo LibreOffice...")
+ 
     def _editar_ok(self, rtf):
+        if not rtf:
+            QMessageBox.warning(self, "Atención", "No se detectaron cambios.")
+            return
+
+        self.rtf_editado = rtf
         self.rtf_actual = rtf
+
+        from auxiliar.editor_texto.rtf_preview import rtf_a_html_con_libreoffice
+
         html = rtf_a_html_con_libreoffice(rtf)
         self.editor.setHtml(html)
 
     def guardar_informe(self):
-        if not self.codpac_actual or not self.rtf_actual:
-            QMessageBox.warning(self, "Atención", "Seleccione paciente y modelo.")
+        print("DEBUG guardar:", bool(self.rtf_editado), self.codpac_actual)
+
+
+   
+        if not self.codpac_actual:
+            QMessageBox.warning(self, "Atención", "Seleccione un paciente.")
+            return
+
+        if not hasattr(self, "rtf_editado") or not self.rtf_editado:
+            QMessageBox.warning(self, "Atención", "Debe editar el informe antes de guardar.")
             return
 
         conn = obtener_conexion()
@@ -247,7 +365,7 @@ class DialogoUsarModelo(QDialog):
             protocolo,
             datetime.now(),
             self.datos_usuario["CODIGO"],
-            self.rtf_actual,
+            self.rtf_editado,
             self.codpac_actual
         ))
 
@@ -263,65 +381,25 @@ class DialogoUsarModelo(QDialog):
 
         task = InformesPreviosWorker(self.codpac_actual)
         task.signals.finished.connect(self._mostrar_informes)
-        task.signals.error.connect(self._error_informes)
-        TaskManager.instance().run(task, "Cargando informes...")
+        TaskManager.instance().run(task)
 
     def _mostrar_informes(self, informes):
-        try:
-            print("_mostrar_informes llamado")
-            print("Tipo:", type(informes))
-            print("Cantidad:", len(informes) if informes else "None")
+        if not informes:
+            QMessageBox.information(self, "Sin informes", "No hay informes.")
+            return
 
-            if not informes:
-                QMessageBox.information(self, "Sin informes", "El paciente no tiene informes.")
-                return
+        dialogo = DialogoInformes(informes, self.datos_usuario["APELLIDO"], self)
+        dialogo.exec_()
 
-            dialogo = DialogoInformes(
-                informes=informes,
-                nombre_profesional=self.datos_usuario["APELLIDO"],
-                parent=self
-            )
+    # ================= UTIL =================
 
-            print("Abriendo diálogo...")
-            dialogo.exec_()
-            print("Diálogo cerrado")
+    def _actualizar_estado_botones(self):
+        habilitar = self.codpac_actual is not None and self.rtf_actual is not None
+        self.btn_guardar.setEnabled(habilitar)
+        self.btn_editar.setEnabled(True)
 
-        except Exception as e:
-            import traceback
-            print("ERROR EN _mostrar_informes")
-            traceback.print_exc()
-            QMessageBox.critical(self, "Error", str(e))
-    
-    def _error_informes(self, error):
-      QMessageBox.critical(self, "Error al cargar informes", error)
-
-        
     def showEvent(self, event):
         super().showEvent(event)
         if not hasattr(self, "_cargado"):
             self._cargado = True
             self.cargar_modelos()
-
-
-
-    def _actualizar_estado_botones(self):
-        habilitar = self.codpac_actual is not None and self.rtf_actual is not None
-        self.btn_guardar.setEnabled(habilitar)
-        self.btn_editar.setEnabled(habilitar)
-
-    def precargar_paciente(self, codpac, nombre_visible):
-        self.codpac_actual = codpac
-        self.paciente_nombre = nombre_visible
-
-        self.lbl_paciente.setText(f"PACIENTE SELECCIONADO: {nombre_visible}")
-
-        self.pac_dni.hide()
-        self.pac_nombre.hide()
-        self.pac_apellido.hide()
-        
-        self.lista_pacientes.hide()
-
-        self.btn_historial.setEnabled(True)
-
-        self._actualizar_estado_botones()
-

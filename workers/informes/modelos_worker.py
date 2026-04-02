@@ -1,3 +1,4 @@
+# workers/informes/modelos_worker.py
 from acceso_db.conexion import obtener_conexion
 
 def cargar_modelos():

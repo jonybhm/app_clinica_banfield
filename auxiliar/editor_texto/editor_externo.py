@@ -1,3 +1,4 @@
+#auxiliar/editor_texto/editor_externo.py
 import subprocess
 import tempfile
 import os
@@ -19,39 +20,61 @@ def buscar_libreoffice():
     return None
 
 
+
 def editar_rtf_con_libreoffice(rtf_inicial: str) -> str | None:
     soffice = buscar_libreoffice()
     if not soffice:
         raise FileNotFoundError("LibreOffice no encontrado")
 
-    # ---- archivo temporal ----
-    tmp = tempfile.NamedTemporaryFile(
-        suffix=".rtf", delete=False, mode="w", encoding="latin1"
-    )
-    tmp.write(rtf_inicial or "")
-    tmp.close()
+    # 📁 crear archivo temporal REAL (no NamedTemporaryFile abierto)
+    tmp_dir = tempfile.gettempdir()
+    tmp_path = os.path.join(tmp_dir, f"rtf_edit_{int(time.time())}.rtf")
 
-    log.info(f"Archivo temporal RTF: {tmp.name}")
+    with open(tmp_path, "w", encoding="latin1") as f:
+        f.write(rtf_inicial or "")
 
-    # ---- abrir LibreOffice ----
-    proc = subprocess.Popen(
-        [soffice, "--writer", tmp.name],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
+    log.info(f"Archivo temporal RTF: {tmp_path}")
 
-    # ---- esperar a que cierre ----
-    proc.wait()
+    # 🚀 abrir LibreOffice
+    subprocess.Popen([
+        soffice,
+        "--writer",
+        "--norestore",
+        "--nolockcheck",
+        tmp_path
+    ])
 
-    # ---- leer resultado ----
+    # 🧠 esperar a que el archivo sea modificado (bloqueo real)
+    last_mtime = os.path.getmtime(tmp_path)
+
+    while True:
+        time.sleep(1)
+
+        try:
+            new_mtime = os.path.getmtime(tmp_path)
+            if new_mtime != last_mtime:
+                break
+        except FileNotFoundError:
+            return None  # LO lo borró o falló
+
+    # ⏳ esperar un toque más por seguridad
+    time.sleep(1)
+
+    # 📖 leer resultado
     try:
-        with open(tmp.name, "r", encoding="latin1") as f:
+        with open(tmp_path, "r", encoding="latin1") as f:
             rtf_final = f.read()
-    finally:
-        os.remove(tmp.name)
+    except Exception as e:
+        log.error(f"Error leyendo archivo: {e}")
+        return None
+
+    # 🧹 borrar archivo
+    try:
+        os.remove(tmp_path)
+    except:
+        pass
 
     if not rtf_final.strip():
-        log.info("Edición cancelada o archivo vacío")
         return None
 
     return rtf_final
