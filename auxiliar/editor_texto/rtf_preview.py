@@ -43,27 +43,57 @@ def html_a_rtf_con_libreoffice(html: str) -> str:
     import tempfile
     import subprocess
     import os
-
-    tmp_html = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
-    tmp_rtf = tmp_html.name.replace(".html", ".rtf")
-
-    with open(tmp_html.name, "w", encoding="utf-8") as f:
-        f.write(html)
+    import time
 
     soffice = buscar_libreoffice()
+    if not soffice:
+        raise Exception("LibreOffice no encontrado")
 
-    subprocess.run([
-        soffice,
-        "--headless",
-        "--convert-to", "rtf",
-        tmp_html.name,
-        "--outdir", os.path.dirname(tmp_html.name)
-    ])
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        html_path = os.path.join(tmp_dir, "doc.html")
+        odt_path = os.path.join(tmp_dir, "doc.odt")
+        rtf_path = os.path.join(tmp_dir, "doc.rtf")
 
-    with open(tmp_rtf, "r", encoding="latin1") as f:
-        contenido = f.read()
+        # 1️⃣ Guardar HTML
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(html)
 
-    os.remove(tmp_html.name)
-    os.remove(tmp_rtf)
+        # 2️⃣ HTML → ODT (SIEMPRE funciona)
+        subprocess.run([
+            soffice,
+            "--headless",
+            "--convert-to", "odt",
+            "--outdir", tmp_dir,
+            html_path
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    return contenido
+        # esperar ODT
+        for _ in range(10):
+            if os.path.exists(odt_path):
+                break
+            time.sleep(0.5)
+
+        if not os.path.exists(odt_path):
+            raise Exception("LibreOffice no generó ODT")
+
+        # 3️⃣ ODT → RTF
+        subprocess.run([
+            soffice,
+            "--headless",
+            "--convert-to", "rtf",
+            "--outdir", tmp_dir,
+            odt_path
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        # esperar RTF
+        for _ in range(10):
+            if os.path.exists(rtf_path):
+                break
+            time.sleep(0.5)
+
+        if not os.path.exists(rtf_path):
+            raise Exception("LibreOffice no generó RTF desde ODT")
+
+        # 4️⃣ Leer resultado
+        with open(rtf_path, "r", encoding="latin1", errors="ignore") as f:
+            return f.read()

@@ -39,7 +39,7 @@ class DialogoUsarModelo(QDialog):
         self.modelo_actual = None
         self.rtf_actual = None
 
-        # 🆕 modelos seleccionados
+        # modelos seleccionados
         self.modelos_seleccionados = []
 
         layout = QHBoxLayout(self)
@@ -80,14 +80,14 @@ class DialogoUsarModelo(QDialog):
         self.lista_modelos = QListWidget()
         self.lista_modelos.itemClicked.connect(self.cargar_modelo)
 
-        # 🆕 botones conjunto
-        self.btn_agregar = QPushButton("➕ Agregar al conjunto")
+        # botones conjunto
+        self.btn_agregar = QPushButton("➕ Agregar al conjunto para editar")
         self.btn_agregar.clicked.connect(self.agregar_modelo)
 
         self.btn_quitar = QPushButton("❌ Quitar seleccionado")
         self.btn_quitar.clicked.connect(self.quitar_modelo)
 
-        # 🆕 lista seleccionados
+        # lista seleccionados
         self.lista_seleccionados = QListWidget()
 
         col_modelos.addWidget(self.buscar_modelo)
@@ -229,57 +229,7 @@ class DialogoUsarModelo(QDialog):
 
             self.actualizar_preview()
 
-    # ================= RTF =================
 
-    # def concatenar_rtfs(self, rtfs):
-    #     if not rtfs:
-    #         return None
-
-    #     def extraer_contenido(rtf):
-    #         """
-    #         Extrae SOLO el contenido interno del RTF,
-    #         eliminando header y llaves externas.
-    #         """
-    #         if not rtf:
-    #             return ""
-
-    #         rtf = rtf.strip()
-
-    #         # Buscar inicio del contenido (después del header)
-    #         inicio = rtf.find(r"\viewkind")
-    #         if inicio == -1:
-    #             inicio = rtf.find(r"\pard")
-
-    #         if inicio != -1:
-    #             rtf = rtf[inicio:]
-
-    #         # sacar última llave
-    #         if rtf.endswith("}"):
-    #             rtf = rtf[:-1]
-
-    #         return rtf.strip()
-
-    #     # 👉 usar el primero como base REAL
-    #     base = rtfs[0].strip()
-
-    #     if not base.endswith("}"):
-    #         return base  # fallback
-
-    #     # sacar cierre final
-    #     base = base[:-1]
-
-    #     # 👉 concatenar contenidos
-    #     for rtf in rtfs[1:]:
-    #         contenido = extraer_contenido(rtf)
-
-    #         base += r"\par\par\b ---------\b0\par\par"
-    #         base += contenido
-
-    #     # cerrar documento
-    #     base += "}"
-
-    #     return base
-        
     def actualizar_preview(self):
         if not self.modelos_seleccionados:
             self.editor.clear()
@@ -298,6 +248,15 @@ class DialogoUsarModelo(QDialog):
             html_total += html
             html_total += "<p>--------------------</p>"
 
+        datos_medico = self.obtener_datos_medico()
+
+        if datos_medico:
+            html_total += "<div style='text-align:right'>"
+            html_total += f"<p><b>{datos_medico['nombre']}</b><br>"
+            html_total += f"Médico {datos_medico['especialidad']}<br>"
+            html_total += f"M.N: {datos_medico['mn']} - M.P: {datos_medico['mp']}</p>"
+            html_total += "</div>"
+
         html_total += "</body></html>"
 
         self.html_actual = html_total
@@ -307,7 +266,7 @@ class DialogoUsarModelo(QDialog):
 
     def editar_informe(self):
         if not hasattr(self, "html_actual") or not self.html_actual:
-            QMessageBox.warning(self, "Atención", "No hay contenido.")
+            QMessageBox.warning(self, "Atención", "No hay informes en el conjunto para editar.")
             return
 
         from auxiliar.editor_texto.rtf_preview import html_a_rtf_con_libreoffice
@@ -403,3 +362,99 @@ class DialogoUsarModelo(QDialog):
         if not hasattr(self, "_cargado"):
             self._cargado = True
             self.cargar_modelos()
+
+    
+    def _actualizar_estado_botones(self):
+        habilitar = self.codpac_actual is not None and self.rtf_actual is not None
+        self.btn_guardar.setEnabled(habilitar)
+        self.btn_editar.setEnabled(habilitar)
+
+    def precargar_paciente(self, codpac, nombre_visible):
+        self.codpac_actual = codpac
+        self.paciente_nombre = nombre_visible
+
+        self.lbl_paciente.setText(f"PACIENTE SELECCIONADO: {nombre_visible}")
+
+        self.pac_dni.hide()
+        self.pac_nombre.hide()
+        self.pac_apellido.hide()
+        
+        self.lista_pacientes.hide()
+
+        self.btn_historial.setEnabled(True)
+
+        self._actualizar_estado_botones()
+
+        
+    def obtener_datos_medico(self):
+        try:
+            codmed = self.obtener_codmed()
+
+            if not codmed:
+                return None
+
+            conn = obtener_conexion()
+            cur = conn.cursor()
+
+            cur.execute("""
+                SELECT 
+                    m.NOMBRE,
+                    m.NROMAT,
+                    m.NROMATNAC,
+                    e.DESCRIPCION
+                FROM AMEDEJEC m
+                LEFT JOIN AESPEC e ON e.CODIGO = m.ESPECIALIDAD
+                WHERE m.CODMED = ?
+            """, (codmed,))
+
+            row = cur.fetchone()
+            conn.close()
+
+            if not row:
+                return None
+
+            nombre, mp, mn, especialidad = row
+
+            return {
+                "nombre": nombre or "",
+                "mp": int(mp) if mp else "",
+                "mn": int(mn) if mn else "",
+                "especialidad": especialidad or ""
+            }
+
+        except Exception as e:
+            log.exception("Error obteniendo datos del médico")
+            return None
+        
+    def obtener_codmed(self):
+        """
+        Devuelve el CODMED correcto:
+        - Si ya es CODMED → lo usa
+        - Si es USUARIO → lo busca en AMEDEJEC
+        """
+        
+        try:
+            conn = obtener_conexion()
+            cur = conn.cursor()
+
+            codigo = self.datos_usuario.get("CODIGO")
+
+            # buscar si existe como USUHC
+            cur.execute("""
+                SELECT CODMED
+                FROM AMEDEJEC
+                WHERE USUHC = ?
+            """, (codigo,))
+
+            row = cur.fetchone()
+            conn.close()
+
+            if row:
+                return row[0]  # ✅ CODMED encontrado
+
+            # fallback: asumir que ya era CODMED
+            return codigo
+
+        except Exception as e:
+            log.exception("Error obteniendo CODMED")
+            return None
