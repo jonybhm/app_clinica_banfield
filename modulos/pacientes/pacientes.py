@@ -8,7 +8,7 @@ Created on Wed May 21 21:19:31 2025
 # modulos/pacientes.py
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,QHeaderView,
-    QTableWidget, QTableWidgetItem, QLineEdit, QMessageBox
+    QTableWidget, QTableWidgetItem, QLineEdit, QMessageBox, QSizePolicy
 )
 from PyQt5.QtCore import Qt, QSize
 from acceso_db.repositorios.repositorio_historia import obtener_datos_paciente_y_historial, buscar_pacientes, obtener_pacientes,buscar_pacientes_triple_factor
@@ -62,18 +62,29 @@ class PantallaPacientes(QWidget):
 
         # Resultados
         self.tabla = QTableWidget()
-        self.tabla.setMinimumWidth(1100)
+        # self.tabla.setMinimumWidth(1100)
+        self.tabla.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding
+        )
         header = self.tabla.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
         header.setStretchLastSection(True)
 
 
+        # self.tabla_container = QWidget()
+        # tabla_layout = QHBoxLayout()
+        # tabla_layout.addStretch()
+        # tabla_layout.addWidget(self.tabla)
+        # tabla_layout.addStretch()
+        # self.tabla_container.setLayout(tabla_layout)
+        
         self.tabla_container = QWidget()
-        tabla_layout = QHBoxLayout()
-        tabla_layout.addStretch()
+        tabla_layout = QVBoxLayout()
+        tabla_layout.setContentsMargins(0, 0, 0, 0)
         tabla_layout.addWidget(self.tabla)
-        tabla_layout.addStretch()
         self.tabla_container.setLayout(tabla_layout)
+
         self.layout.addWidget(self.tabla_container)
 
         # Abrir historial
@@ -133,7 +144,11 @@ class PantallaPacientes(QWidget):
                     item.setData(Qt.UserRole, fila["CODPAC"])
                 self.tabla.setItem(fila_idx, col, item)
 
-        self.tabla.resizeColumnsToContents()
+        # self.tabla.resizeColumnsToContents()
+        header = self.tabla.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        self.tabla.setHorizontalScrollMode(self.tabla.ScrollPerPixel)
+
         self.tabla.setAlternatingRowColors(True)
         self.tabla.setSortingEnabled(True)
 

@@ -41,6 +41,12 @@ class DialogoConsulta(QDialog):
     evolucion_guardada = pyqtSignal()
     def __init__(self, datos_paciente, historial, parent=None):
         super().__init__(parent)
+        self.setWindowFlags(
+            Qt.Window |
+            Qt.WindowMinimizeButtonHint |
+            Qt.WindowMaximizeButtonHint |
+            Qt.WindowCloseButtonHint
+        )
         self.setWindowTitle("Nueva Consulta / Ver Historia Clínica")
         self.resize(600, 500)
 
@@ -98,7 +104,7 @@ class DialogoConsulta(QDialog):
         self.setLayout(layout)
 
         
-        # self.setWindowState(Qt.WindowMaximized)
+        self.setWindowState(Qt.WindowMaximized)
 
     def _init_tab_consulta(self):
         layout = QVBoxLayout()

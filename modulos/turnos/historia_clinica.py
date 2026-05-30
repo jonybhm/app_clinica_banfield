@@ -1,7 +1,11 @@
 
 # modulos/historia_clinica.py
+from email import header
+
+from email import header
+
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QDialog, QApplication,
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QDialog, QApplication, QSizePolicy,
     QDateEdit, QTableWidget, QTableWidgetItem, QMessageBox, QStackedLayout, QHeaderView, QShortcut
 )
 from PyQt5.QtCore import QDate, Qt, QTimer, QSize
@@ -66,17 +70,27 @@ class PantallaHistoriaClinica(QWidget):
 
         # ---- TABLA centrada ----
         self.tabla = QTableWidget()
-        self.tabla.setMinimumWidth(1100)
+        # self.tabla.setMinimumWidth(1100)
+        self.tabla.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding
+        )
         header = self.tabla.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
         header.setStretchLastSection(True)
 
 
+        # self.tabla_container = QWidget()
+        # tabla_layout = QHBoxLayout()
+        # tabla_layout.addStretch()
+        # tabla_layout.addWidget(self.tabla)
+        # tabla_layout.addStretch()
+        # self.tabla_container.setLayout(tabla_layout)
+
         self.tabla_container = QWidget()
-        tabla_layout = QHBoxLayout()
-        tabla_layout.addStretch()
+        tabla_layout = QVBoxLayout()
+        tabla_layout.setContentsMargins(0, 0, 0, 0)
         tabla_layout.addWidget(self.tabla)
-        tabla_layout.addStretch()
         self.tabla_container.setLayout(tabla_layout)
 
         # capa frontal = tabla
@@ -253,9 +267,12 @@ class PantallaHistoriaClinica(QWidget):
                     self.tabla.setItem(row_idx, 4, QTableWidgetItem(tiempo_actual))
 
         # Ajustar ancho columnas
-        self.tabla.resizeColumnsToContents()
-        self.tabla.horizontalHeader().setStretchLastSection(False)
-        self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # self.tabla.resizeColumnsToContents()
+        # self.tabla.horizontalHeader().setStretchLastSection(False)
+        # self.tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        header = self.tabla.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        self.tabla.setHorizontalScrollMode(self.tabla.ScrollPerPixel)
 
         # Ordenamiento por columna
         self.tabla.setSortingEnabled(True)

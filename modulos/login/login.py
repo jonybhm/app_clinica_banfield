@@ -24,7 +24,8 @@ class PantallaLogin(QDialog):
         layout.addWidget(QLabel("Usuario"))
 
         self.usuario_combo = ComboBoxBuscador()
-        self.usuario_combo.setItems(obtener_lista_usuarios())
+        self.usuario_combo.setItems([""] + obtener_lista_usuarios())
+        self.usuario_combo.setCurrentIndex(0)
         layout.addWidget(self.usuario_combo)
 
         layout.addWidget(QLabel("Contraseña"))

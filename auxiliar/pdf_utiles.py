@@ -142,9 +142,8 @@ def generar_pdf_historia(datos_paciente, historial):
 def generar_pdf_informe(informe, nombre_profesional):
     """
     Genera un PDF con un informe individual de AINFOR.
-    informe: dict con PROTOCOLO, FESTUDIO, TIPEA, CMEMO, CODPAC
-    nombre_profesional: string con nombre y apellido del médico
     """
+
     fecha_estudio = informe.get("FESTUDIO")
     if isinstance(fecha_estudio, datetime):
         fecha_str = fecha_estudio.strftime("%d/%m/%Y")
@@ -155,7 +154,10 @@ def generar_pdf_informe(informe, nombre_profesional):
     texto_rtf = informe.get("CMEMO", "")
     texto_limpio = limpiar_evolucion(texto_rtf)
 
-    # Guardar en carpeta temporal
+    paciente = informe.get("PACIENTE", "")
+    entidad = informe.get("ENTIDAD", "")
+    medico_solicitante = informe.get("MEDICO_SOLICITANTE", "")
+
     archivo = os.path.join(
         tempfile.gettempdir(),
         f"informe_{protocolo}.pdf"
@@ -172,6 +174,7 @@ def generar_pdf_informe(informe, nombre_profesional):
 
     estilos = getSampleStyleSheet()
     estilo_normal = estilos["Normal"]
+
     estilo_courier = ParagraphStyle(
         "Courier",
         parent=estilos["Normal"],
@@ -179,17 +182,6 @@ def generar_pdf_informe(informe, nombre_profesional):
         fontSize=10,
         leading=14,
     )
-
-    elementos = []
-
-    encabezado = (
-        f"Fecha de Estudio: {fecha_str} &nbsp;&nbsp;&nbsp;&nbsp; "
-        f"Profesional: {nombre_profesional} &nbsp;&nbsp;&nbsp;&nbsp; "
-        f"Protocolo: {protocolo}"
-    )
-    elementos.append(Paragraph(encabezado, estilo_normal))
-    elementos.append(HRFlowable(width="100%", thickness=1, color=colors.black))
-    elementos.append(Spacer(1, 6))
 
     estilo_centrado = ParagraphStyle(
         "Centrado",
@@ -199,6 +191,20 @@ def generar_pdf_informe(informe, nombre_profesional):
         fontSize=10
     )
 
+    elementos = []
+
+    encabezado = f"""
+    Paciente: {paciente}<br/>
+    Entidad: {entidad}<br/>
+    Med. Solicitante: {medico_solicitante}<br/>
+    Fecha de Estudio: {fecha_str}<br/>
+    Nro. Protocolo: {protocolo}
+    """
+
+    elementos.append(Paragraph(encabezado, estilo_normal))
+    elementos.append(HRFlowable(width="100%", thickness=1, color=colors.black))
+    elementos.append(Spacer(1, 12))
+
     datos_inst = """Instituto Cardiológico Banfield<br/>
     Maipú 660 Banfield<br/>
     Tel: 4202-5925 y 4202-5927"""
@@ -207,11 +213,16 @@ def generar_pdf_informe(informe, nombre_profesional):
     elementos.append(Spacer(1, 12))
 
     if texto_limpio:
-        elementos.append(Paragraph(texto_limpio.replace("\n", "<br/>"), estilo_courier))
+        elementos.append(
+            Paragraph(
+                texto_limpio.replace("\n", "<br/>"),
+                estilo_courier
+            )
+        )
 
     try:
         doc.build(elementos)
     except Exception as e:
         raise Exception(f"Error generando PDF del protocolo {protocolo}: {e}")
-    
+
     return os.path.abspath(archivo)

@@ -3,7 +3,7 @@ import logging
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
+    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QSizePolicy,
     QMessageBox, QListWidget, QInputDialog, QLineEdit, QListWidgetItem, 
 )
 from acceso_db.conexion import obtener_conexion
@@ -42,7 +42,11 @@ class DialogoNuevoModelo(QDialog):
 
         self.lista = QListWidget()
         self.lista.itemClicked.connect(self.cargar)
-        self.lista.setMinimumWidth(260)
+        # self.lista.setMinimumWidth(260)
+        self.tabla.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding
+        )
 
         col_lista.addWidget(self.buscador)
         col_lista.addWidget(self.lista)

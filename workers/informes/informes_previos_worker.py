@@ -14,24 +14,61 @@ class InformesPreviosWorker(BaseTask):
         conn = obtener_conexion()
         cursor = conn.cursor()
 
+        # cursor.execute("""
+        #     SELECT PROTOCOLO, FESTUDIO, TIPEA, CMEMO
+        #     FROM dbo.AINFOR
+        #     WHERE CODPAC = ?
+        #     ORDER BY FESTUDIO DESC
+        # """, (self.codpac,))
+
         cursor.execute("""
-            SELECT PROTOCOLO, FESTUDIO, TIPEA, CMEMO
-            FROM dbo.AINFOR
-            WHERE CODPAC = ?
-            ORDER BY FESTUDIO DESC
+            SELECT 
+                i.PROTOCOLO,
+                i.FESTUDIO,
+                i.TIPEA,
+                i.CMEMO,
+                p.NOMBRE AS PACIENTE,
+                o.DESOBRA AS ENTIDAD,
+                ms.NOMBRE AS MEDICO_SOLICITANTE
+            FROM dbo.AINFOR i
+
+            LEFT JOIN dbo.AHISTORPAC p 
+                ON i.CODPAC = p.CODPAC
+
+            LEFT JOIN dbo.AOBRASPX o 
+                ON p.ENTIDAD = o.CODOBRA
+
+            LEFT JOIN dbo.ACABPAC c 
+                ON i.PROTOCOLO = c.PROTOCOLO
+
+            LEFT JOIN dbo.MEDSOLIC ms 
+                ON c.MEDSOLPAC = ms.CODMED
+
+            WHERE i.CODPAC = ?
+            ORDER BY i.FESTUDIO DESC
         """, (self.codpac,))
 
         filas = cursor.fetchall()
         print("📄 Resultados:", filas)
 
         resultados = []
-        for protocolo, festudio, tipe, cmemo in filas:
+        for protocolo, festudio, tipe, cmemo, paciente, entidad, medico_solicitante in filas:
+            # resultados.append({
+            #     "PROTOCOLO": protocolo,
+            #     "FESTUDIO": festudio,
+            #     "TIPEA": tipe,
+            #     "CMEMO": cmemo,
+            #     "CODPAC": self.codpac
+            # })
             resultados.append({
                 "PROTOCOLO": protocolo,
                 "FESTUDIO": festudio,
                 "TIPEA": tipe,
                 "CMEMO": cmemo,
-                "CODPAC": self.codpac
+                "CODPAC": self.codpac,
+                "PACIENTE": paciente or "",
+                "ENTIDAD": entidad or "",
+                "MEDICO_SOLICITANTE": medico_solicitante or ""
             })
 
         conn.close()
