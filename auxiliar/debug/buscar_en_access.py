@@ -33,9 +33,11 @@ def buscar_valor_en_bd(valor_busqueda):
         except:
             continue  # Por si la tabla no se puede consultar
 
+    
+
     cursor.close()
     conn.close()
     
 
 # USO:
-buscar_valor_en_bd("Ventana ecografica adecuada.")
+buscar_valor_en_bd("1301382")

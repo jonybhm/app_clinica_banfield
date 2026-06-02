@@ -60,9 +60,14 @@ class DialogoInformes(QDialog):
         if not resultados:
             self.lista.addItem("No hay informes disponibles.")
             return
-
+        
         for info in resultados:
-            texto = f"{info['FESTUDIO'].strftime('%d/%m/%Y')} - Protocolo {info['PROTOCOLO']} ({info['TIPEA']})"
+            fecha = info['FESTUDIO'].strftime('%d/%m/%Y')
+
+            practica = info.get('TIPOPRACTICA', 'Práctica desconocida')
+            medico = info.get('MEDICO_SOLICITANTE', 'Sin médico')
+
+            texto = f"{fecha} - {practica} - {medico} [#{info['PROTOCOLO']}]"
             self.lista.addItem(texto)
 
     def imprimir_informe(self):
