@@ -6,20 +6,39 @@ Created on Thu May 15 22:24:11 2025
 """
 #modulos/main_window/main_window.py
 from PyQt5.QtWidgets import (
-    QMainWindow, QPushButton, QStackedWidget, QWidget, QLabel,
-    QVBoxLayout, QHBoxLayout, QApplication, QMenuBar, QMenu, QAction, QMessageBox
+    QMainWindow,
+    QPushButton,
+    QStackedWidget,
+    QWidget,
+    QLabel,
+    QVBoxLayout,
+    QHBoxLayout,
+    QApplication,
+    QMenuBar,
+    QMenu,
+    QAction,
+    QMessageBox
 )
-from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtCore import Qt, QSettings, QSize
+
+from PyQt5.QtGui import (
+    QPixmap,
+    QIcon
+)
+
+from PyQt5.QtCore import (
+    Qt,
+    QSettings,
+    QSize,
+    pyqtSignal
+)
+
 from modulos.inicio import PantallaInicio
 from modulos.turnos.historia_clinica import PantallaHistoriaClinica
 from modulos.login.login import PantallaLogin
 from acceso_db.repositorios.permisos_repo import tiene_permiso_admin
 from modulos.usuarios.admin_usuarios import AdminUsuarios
-from modulos.pacientes.pacientes import PantallaPacientes  
-from PyQt5.QtCore import pyqtSignal
+from modulos.pacientes.pacientes import PantallaPacientes
 from auxiliar.widgets.spinner import SpinnerDialog
-from PyQt5.QtWidgets import QApplication
 from auxiliar.rutas import recurso_path
 
 class MainWindow(QMainWindow):
@@ -149,9 +168,16 @@ class MainWindow(QMainWindow):
 
     def _agregar_admin_menu(self):
         admin_menu = self.menuBar().addMenu("Administración")
+
+        #Usuarios      
         admin_action = QAction("Usuarios", self)
         admin_action.triggered.connect(self._abrir_admin)
         admin_menu.addAction(admin_action)
+
+        # Agendas
+        agendas_action = QAction("Agendas",self)
+        agendas_action.triggered.connect(self.abrir_agendas)
+        admin_menu.addAction(agendas_action)
 
     def _abrir_admin(self):
         # Mostrar spinner
@@ -246,6 +272,14 @@ class MainWindow(QMainWindow):
         self.pacientes_window = PacientesWindow(self.datos_usuario)
         self.pacientes_window.show()
 
+    def abrir_agendas(self):        
+
+        self.agendas_window = AgendasWindow(
+            self.datos_usuario
+        )
+
+        self.agendas_window.show()
+
 
 # Ventana secundaria para Historia Clínica
 
@@ -325,4 +359,44 @@ class InformesWindow(QMainWindow):
 
         container = QWidget()
         container.setLayout(layout)
+        self.setCentralWidget(container)
+
+class AgendasWindow(QMainWindow):
+
+    def __init__(self, datos_usuario):
+        super().__init__()
+
+        from modulos.agendas.agendas import PantallaAgendas
+
+        self.datos_usuario = datos_usuario
+
+        self.setWindowTitle("Agendas")
+        self.showMaximized()
+
+        widget = PantallaAgendas()
+
+        btn_volver = QPushButton(
+            "Volver al Menú Principal"
+        )
+
+        btn_volver.setIcon(
+            QIcon(":/assets/svg/home.svg")
+        )
+
+        btn_volver.setIconSize(
+            QSize(20, 20)
+        )
+
+        btn_volver.clicked.connect(
+            self.close
+        )
+
+        layout = QVBoxLayout()
+
+        layout.addWidget(widget)
+        layout.addWidget(btn_volver)
+
+        container = QWidget()
+        container.setLayout(layout)
+
         self.setCentralWidget(container)

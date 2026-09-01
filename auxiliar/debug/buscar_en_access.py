@@ -40,4 +40,4 @@ def buscar_valor_en_bd(valor_busqueda):
     
 
 # USO:
-buscar_valor_en_bd("1301382")
+buscar_valor_en_bd("normal")
