@@ -133,6 +133,11 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         archivo_menu = menubar.addMenu("Archivo")
 
+        turnos_menu = menubar.addMenu("Turnos")
+        asignacion_action = QAction("Disponibilidad / Asignación de Turnos", self)
+        asignacion_action.triggered.connect(self.abrir_asignacion_turnos)
+        turnos_menu.addAction(asignacion_action)
+
         temas_menu = archivo_menu.addMenu("Temas")
         tema_oscuro_action = QAction("Oscuro", self)
         tema_oscuro_action.triggered.connect(self._aplicar_tema_oscuro)
@@ -280,6 +285,16 @@ class MainWindow(QMainWindow):
 
         self.agendas_window.show()
 
+    def abrir_asignacion_turnos(self):
+
+        self.asignacion_turnos_window = (
+            AsignacionTurnosWindow(
+                self.datos_usuario
+            )
+        )
+
+        self.asignacion_turnos_window.show()
+
 
 # Ventana secundaria para Historia Clínica
 
@@ -400,3 +415,58 @@ class AgendasWindow(QMainWindow):
         container.setLayout(layout)
 
         self.setCentralWidget(container)
+
+class AsignacionTurnosWindow(QMainWindow):
+
+    def __init__(self, datos_usuario):
+        super().__init__()
+
+        from modulos.turnos.asignacion_turnos import (
+            PantallaAsignacionTurnos
+        )
+
+        self.datos_usuario = datos_usuario
+
+        self.setWindowTitle(
+            "Asignación de Turnos"
+        )
+
+        self.showMaximized()
+
+        widget = PantallaAsignacionTurnos(
+            datos_usuario=self.datos_usuario
+        )
+
+        btn_volver = QPushButton(
+            "Volver al Menú Principal"
+        )
+
+        btn_volver.setIcon(
+            QIcon(":/assets/svg/home.svg")
+        )
+
+        btn_volver.setIconSize(
+            QSize(20, 20)
+        )
+
+        btn_volver.clicked.connect(
+            self.close
+        )
+
+        layout = QVBoxLayout()
+
+        layout.addWidget(widget)
+
+        layout.addWidget(
+            btn_volver
+        )
+
+        container = QWidget()
+
+        container.setLayout(
+            layout
+        )
+
+        self.setCentralWidget(
+            container
+        )
