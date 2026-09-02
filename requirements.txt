@@ -3,3 +3,4 @@ pyodbc
 striprtf
 reportlab
 PyQtWebEngine
+matplotlib

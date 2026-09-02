@@ -11,6 +11,7 @@ import sys, time, os, ctypes
 from workers.base.task_manager import TaskManager  
 from workers.base.base_task import BaseTask  
 import resources_rc
+from acceso_db.migraciones import aplicar_migraciones
 from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
@@ -102,16 +103,56 @@ if __name__ == "__main__":
             else:
                 logging.info("Usuario optó por continuar sin instalar LibreOffice")
 
-        # Sincronizar hora con servidor SQL
-        logging.info("Sincronizando hora con servidor SQL")
-        from datetime import datetime
-        hora_servidor = obtener_hora_servidor()
-        sincronizar_hora_windows(hora_servidor)
-        
-        # time.sleep(2) # Simular tiempo de carga
+        # ============================================================
+        # SINCRONIZAR HORA CON SERVIDOR SQL
+        # ============================================================
 
-        controlador = ControladorApp(app, libreoffice_ok)        
+        logging.info(
+            "Sincronizando hora con servidor SQL"
+        )
+
+        from datetime import datetime
+
+        hora_servidor = obtener_hora_servidor()
+
+        sincronizar_hora_windows(
+            hora_servidor
+        )
+
+
+        # ============================================================
+        # MIGRACIONES DE LA APLICACIÓN
+        # ============================================================
+
+        logging.info(
+            "Verificando estructura de base de datos..."
+        )
+
+        splash.showMessage(
+            "Verificando base de datos...",
+            Qt.AlignBottom | Qt.AlignCenter,
+            Qt.white
+        )
+
+        app.processEvents()
+
+        aplicar_migraciones()
+
+
+        # ============================================================
+        # LOGIN
+        # ============================================================
+
+        controlador = ControladorApp(
+            app,
+            libreoffice_ok
+        )
+
         controlador.mostrar_login()
+
+        splash.finish(
+            controlador.login_window
+        )
 
         splash.finish(controlador.login_window)
 
