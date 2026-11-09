@@ -30,7 +30,8 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QSpinBox,
     QApplication,
-    QDateTimeEdit
+    QDateTimeEdit,
+    QLineEdit
 )
 
 from datetime import datetime
@@ -38,9 +39,7 @@ import os
 
 from auxiliar.editor_texto.rtf_utiles import limpiar_evolucion
 
-from acceso_db.repositorios.repositorio_historia import (
-    obtener_lista_diagnosticos,
-    obtener_lista_motivos_consulta,
+from acceso_db.repositorios.repositorio_historia import (     
     obtener_lista_examenes_complementarios,
     obtener_lista_tratamientos,
     obtener_lista_derivaciones,
@@ -378,12 +377,31 @@ class DialogoConsulta(QDialog):
         # CAMPOS DE EVOLUCIÓN
         # =========================================================
 
-        self.cmb_motivo = ComboBoxBuscador()
+        # Motivo y diagnóstico ahora son texto libre
+        self.txt_motivo = QLineEdit()
 
+        self.txt_motivo.setPlaceholderText(
+            "Ingrese el motivo de consulta"
+        )
+
+        self.txt_diagnostico = QLineEdit()
+
+        self.txt_diagnostico.setPlaceholderText(
+            "Ingrese el diagnóstico"
+        )
+
+        # Evolución
         self.txt_evolucion = QTextEdit()
-        self.txt_evolucion.setFixedHeight(100)
 
-        self.cmb_diagnostico = ComboBoxBuscador()
+        self.txt_evolucion.setFixedHeight(
+            120
+        )
+
+        self.txt_evolucion.setPlaceholderText(
+            "Ingrese la evolución del paciente"
+        )
+
+        # Estos campos continúan usando las opciones existentes
         self.cmb_tratamiento = ComboBoxBuscador()
         self.cmb_examenes = ComboBoxBuscador()
         self.cmb_derivacion = ComboBoxBuscador()
@@ -392,55 +410,34 @@ class DialogoConsulta(QDialog):
         # CARGAR LISTAS DESDE DB
         # =========================================================
 
-        self.diagnosticos = obtener_lista_diagnosticos()
         self.examenes = obtener_lista_examenes_complementarios()
-        self.motivos = obtener_lista_motivos_consulta()
         self.tratamientos = obtener_lista_tratamientos()
         self.derivacion = obtener_lista_derivaciones()
 
         # Convertir en listas con formato "desc (codigo)"
-        diagnosticos_items = [""] + [
-            f"{desc} ({cod})"
-            for cod, desc in self.diagnosticos
-        ]
 
         examenes_items = [""] + [
             f"{desc} ({cod})"
             for cod, desc in self.examenes
         ]
-
-        motivos_items = [""] + [
-            f"{desc} ({cod})"
-            for cod, desc in self.motivos
-        ]
-
         tratamientos_items = [""] + [
             f"{desc} ({cod})"
             for cod, desc in self.tratamientos
         ]
-
         derivacion_items = [""] + [
             f"{desc} ({cod})"
             for cod, desc in self.derivacion
         ]
 
         # Cargar combos
-        self.cmb_diagnostico.setItems(
-            diagnosticos_items
-        )
+
 
         self.cmb_examenes.setItems(
             examenes_items
-        )
-
-        self.cmb_motivo.setItems(
-            motivos_items
-        )
-
+        )     
         self.cmb_tratamiento.setItems(
             tratamientos_items
         )
-
         self.cmb_derivacion.setItems(
             derivacion_items
         )
@@ -454,7 +451,7 @@ class DialogoConsulta(QDialog):
         )
 
         layout.addWidget(
-            self.cmb_motivo
+            self.txt_motivo
         )
 
         # =========================================================
@@ -478,7 +475,7 @@ class DialogoConsulta(QDialog):
         )
 
         layout.addWidget(
-            self.cmb_diagnostico
+            self.txt_diagnostico
         )
 
         # =========================================================
