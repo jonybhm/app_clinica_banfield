@@ -36,6 +36,7 @@ from PyQt5.QtWidgets import (
 
 from datetime import datetime
 import os
+import re
 
 from auxiliar.editor_texto.rtf_utiles import limpiar_evolucion
 
@@ -292,7 +293,7 @@ class DialogoConsulta(QDialog):
             )
 
             evolucion_limpia = (
-                limpiar_evolucion(
+                self._evolucion_para_mostrar(
                     evolucion
                 )
             )
@@ -315,6 +316,10 @@ class DialogoConsulta(QDialog):
                 True
             )
 
+            texto.setLineWrapMode(
+                QTextEdit.WidgetWidth
+            )
+
             texto.setPlainText(
                 f"Profesional: {profesional}\n"
                 f"Hora: {hora}\n"
@@ -322,9 +327,7 @@ class DialogoConsulta(QDialog):
                 f"{evolucion_limpia}"
             )
 
-            texto.setFixedHeight(
-                120
-            )
+            texto.setMinimumHeight(170)
 
             historial_layout.addWidget(
                 texto
@@ -830,7 +833,6 @@ class DialogoConsulta(QDialog):
             "Guardando signos cardiovasculares..."
         )
 
-
     def _signos_guardados(self, nuevo_id):
 
         self.btn_guardar_signos.setEnabled(
@@ -851,7 +853,6 @@ class DialogoConsulta(QDialog):
         # Refrescar gráfico
         self.cargar_signos_cardiacos()
 
-
     def _error_guardando_signos(
         self,
         error
@@ -869,7 +870,6 @@ class DialogoConsulta(QDialog):
                 f"la medición:\n\n{error}"
             )
         )
-
 
     def cargar_signos_cardiacos(self):
 
@@ -899,7 +899,6 @@ class DialogoConsulta(QDialog):
             "Cargando signos cardiovasculares..."
         )
 
-
     def _signos_cargados(
         self,
         mediciones
@@ -908,7 +907,6 @@ class DialogoConsulta(QDialog):
         self.grafico_signos.actualizar(
             mediciones
         )
-
 
     def _error_cargando_signos(
         self,
@@ -924,54 +922,205 @@ class DialogoConsulta(QDialog):
             )
         )
 
-    def confirmar_guardado(self):        
+    def _texto_combo_sin_codigo(self, combo):
+        """
+        Devuelve solamente la descripción visible del combo.
+
+        Por ejemplo:
+            "ELECTROCARDIOGRAMA (123)"
+        pasa a:
+            "ELECTROCARDIOGRAMA"
+        """
+
+        texto = combo.currentText().strip()
+
+        if not texto:
+            return ""
+
+        return re.sub(
+            r"\s+\([^()]*\)$",
+            "",
+            texto
+        ).strip()
+
+    def _construir_texto_evolucion(self):
+        """
+        Genera el texto que se guardará en AHISTCLIN.EVOLUCION.
+
+        Se utiliza CRLF para mantener compatibilidad con
+        el formato de texto del sistema anterior.
+        """
+
+        motivo = (
+            self.txt_motivo.text().strip()
+        )
+
+        diagnostico = (
+            self.txt_diagnostico.text().strip()
+        )
+
+        tratamiento = (
+            self._texto_combo_sin_codigo(
+                self.cmb_tratamiento
+            )
+        )
+
+        estudios = (
+            self._texto_combo_sin_codigo(
+                self.cmb_examenes
+            )
+        )
+
+        derivacion = (
+            self._texto_combo_sin_codigo(
+                self.cmb_derivacion
+            )
+        )
+
+        evolucion = (
+            self.txt_evolucion
+            .toPlainText()
+            .strip()
+        )
+
+        # Normalizar los saltos escritos por el médico
+        evolucion = evolucion.replace(
+            "\r\n",
+            "\n"
+        ).replace(
+            "\r",
+            "\n"
+        )
+
+        lineas = [
+            f"Motivo de Consulta: {motivo}",
+            f"Diagnóstico: {diagnostico}",
+            f"Tratamiento: {tratamiento}",
+            f"Estudios complementarios: {estudios}",
+            f"Derivación: {derivacion}",
+        ]
+
+        # Separación antes del texto libre
+        if evolucion:
+
+            lineas.append("")
+
+            lineas.extend(
+                evolucion.split("\n")
+            )
+
+        return "\r\n".join(
+            lineas
+        )
+
+    def confirmar_guardado(self):
+
         reply = QMessageBox.question(
-            self, "Confirmación", "¿Desea guardar esta evolución?",
+            self,
+            "Confirmación",
+            "¿Desea guardar esta evolución?",
             QMessageBox.Yes | QMessageBox.No
         )
+
         if reply != QMessageBox.Yes:
             return
 
-        texto = self.txt_evolucion.toPlainText()
+        # ---------------------------------------------------------
+        # CONSTRUIR EVOLUCIÓN COMPLETA
+        # ---------------------------------------------------------
 
-        from workers.evolucion.guardar_evolucion_worker import GuardarEvolucionWorker
+        texto = (
+            self._construir_texto_evolucion()
+        )
 
-        task = GuardarEvolucionWorker(self.datos_paciente, texto)
-        task.signals.finished.connect(self._guardar_ok)
-        task.signals.error.connect(self._guardar_error)
+        from workers.evolucion.guardar_evolucion_worker import (
+            GuardarEvolucionWorker
+        )
 
-        TaskManager.instance().run(task, "Guardando evolución...")
+        task = GuardarEvolucionWorker(
+            self.datos_paciente,
+            texto
+        )
+
+        task.signals.finished.connect(
+            self._guardar_ok
+        )
+
+        task.signals.error.connect(
+            self._guardar_error
+        )
+
+        TaskManager.instance().run(
+            task,
+            "Guardando evolución..."
+        )
 
     def _guardar_ok(self, _):
+
         try:
-            secuen=self.datos_paciente["SECUEN_TURNO"]                
-            print(f"SECUENCIA: {secuen}")
-            marcar_atencion_completa(
-                secuen=self.datos_paciente.get("SECUEN_TURNO"),
-                codpac=self.datos_paciente["CODPAC"],
-                fecha=self.datos_paciente.get("FECHA"),
-                id_profesional=self.datos_paciente["ID_PROFESIONAL"]
+
+            secuen = self.datos_paciente.get(
+                "SECUEN_TURNO"
             )
+
+            codpac = self.datos_paciente.get(
+                "CODPAC"
+            )
+
+            fecha = self.datos_paciente.get(
+                "FECHA"
+            )
+
+            id_profesional = self.datos_paciente.get(
+                "ID_PROFESIONAL"
+            )
+
+            # Sólo intentamos marcar atención si tenemos
+            # datos suficientes de un turno o recepción.
+            if (
+                secuen
+                or (
+                    codpac
+                    and fecha
+                    and id_profesional
+                )
+            ):
+
+                marcar_atencion_completa(
+                    secuen=secuen,
+                    codpac=codpac,
+                    fecha=fecha,
+                    id_profesional=id_profesional
+                )
+
         except Exception as e:
+
             QMessageBox.warning(
                 self,
                 "Aviso",
-                f"No se pudo marcar el turno como atendido:\n{e}"
+                (
+                    "La evolución se guardó correctamente, "
+                    "pero no se pudo actualizar el estado "
+                    f"de atención:\n\n{e}"
+                )
             )
 
-        QMessageBox.information(self, "Éxito", "Evolución guardada correctamente")
+        QMessageBox.information(
+            self,
+            "Éxito",
+            "Evolución guardada correctamente"
+        )
+
         self.evolucion_guardada.emit()
+
         self.accept()
 
     def _guardar_error(self, error):
         QMessageBox.critical(self, "Error", str(error))
 
-
-
     def abrir_vista_previa(self):
         task = AbrirPdfWorker(self.datos_paciente, self.historial)
         TaskManager.instance().run(task, "Generando PDF...")
-
 
     def abrir_informes(self):
         spinner = SpinnerDialog("Cargando informes...")
@@ -1002,7 +1151,6 @@ class DialogoConsulta(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
 
-
     def _error_informes(self, error):
         QMessageBox.critical(self, "Error al cargar informes", error)
 
@@ -1029,3 +1177,31 @@ class DialogoConsulta(QDialog):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
+
+    def _evolucion_para_mostrar(self, evolucion):
+
+        if not evolucion:
+            return ""
+
+        texto_original = str(evolucion)
+
+        normalizado = (
+            texto_original
+            .replace("\r\n", "\n")
+            .replace("\r", "\n")
+        )
+
+        # Evoluciones creadas por la aplicación nueva:
+        # ya vienen como texto plano correctamente estructurado.
+        if (
+            "Motivo de Consulta:" in normalizado
+            or "Diagnóstico:" in normalizado
+            or "Estudios complementarios:" in normalizado
+        ):
+            return normalizado
+
+        # Evoluciones antiguas:
+        # mantener el limpiador legacy.
+        return limpiar_evolucion(
+            texto_original
+        )
